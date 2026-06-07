@@ -1,0 +1,14 @@
+{
+  "app": {
+    "baseUrl": "http://localhost:3000",
+    "workerApiKey": "change-this-worker-secret",
+    "pollSeconds": 5
+  },
+  "doganium": {
+    "appPath": "C:\\Program Files\\Doganium\\Doganium.exe",
+    "username": "DOGANIUM_USERNAME",
+    "password": "DOGANIUM_PASSWORD",
+    "downloadFolder": "C:\\DoganiumAutomation\\downloads"
+  },
+  "mode": "mock"
+}
