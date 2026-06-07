@@ -1,27 +1,29 @@
 import type { TrafficQuoteResult } from "@/types/traffic";
 
+const missingFieldLabels: Record<string, string> = {
+  tckn: "T.C. Kimlik No",
+  plate: "Plaka",
+  documentSerialNo: "Belge / Seri No",
+  birthDate: "Doğum Tarihi",
+};
+
 export function buildMissingFieldsMessage(missingFields: string[]): string {
   return [
     "Merhaba, trafik sigortası teklifinizi hazırlayabilmemiz için bazı bilgiler eksik görünüyor.",
     "",
     "Lütfen aşağıdaki formatta gönderiniz:",
     "",
-    missingFields.includes("T.C. Kimlik No") ? "T.C. Kimlik No:" : null,
-    missingFields.includes("Plaka") ? "Plaka:" : null,
-    missingFields.includes("Belge / Seri No") ? "Belge / Seri No:" : null,
-    missingFields.includes("Doğum Tarihi") ? "Doğum Tarihi:" : null,
+    ...missingFields.map((field) => `${missingFieldLabels[field] ?? field}:`),
     "",
-    "Bilgileri tamamladığınızda teklif sürecinizi başlatacağız."
-  ]
-    .filter(Boolean)
-    .join("\n");
+    "Bilgileri tamamladığınızda teklif sürecinizi başlatacağız.",
+  ].join("\n");
 }
 
 export function buildQuoteReadyMessage(result: TrafficQuoteResult): string {
   const lines = [
     "Merhaba, trafik sigortası teklif çalışmanız tamamlandı.",
     "",
-    `En uygun teklif: ${result.cheapestCompany} - ${formatTry(result.cheapestPrice)}`
+    `En uygun teklif: ${result.cheapestCompany} - ${formatTry(result.cheapestPrice)}`,
   ];
 
   if (result.highestCompany && result.highestPrice) {
@@ -34,8 +36,8 @@ export function buildQuoteReadyMessage(result: TrafficQuoteResult): string {
 
   lines.push(
     "",
-    "Devam etmek isterseniz ödeme işlemi için size güvenli ödeme bağlantısı gönderilecektir.",
-    "Güvenliğiniz için kart numarası, son kullanma tarihi veya CVV bilgilerinizi WhatsApp üzerinden paylaşmayınız."
+    "Devam etmek isterseniz ödeme işlemi için size güvenli ödeme bağlantısı daha sonra gönderilecektir.",
+    "Güvenliğiniz için kart numarası, son kullanma tarihi veya CVV bilgilerinizi WhatsApp üzerinden paylaşmayınız.",
   );
 
   return lines.join("\n");
@@ -45,6 +47,6 @@ function formatTry(value: number): string {
   return new Intl.NumberFormat("tr-TR", {
     style: "currency",
     currency: "TRY",
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   }).format(value);
 }

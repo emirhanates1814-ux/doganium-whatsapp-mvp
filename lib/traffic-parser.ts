@@ -1,46 +1,105 @@
-import { z } from "zod";
 import type { ParsedTrafficRequest } from "@/types/traffic";
 
-const tcknSchema = z.string().regex(/^\d{11}$/);
-const plateSchema = z.string().min(5).max(10);
-const serialSchema = z.string().min(3).max(30);
-const birthDateSchema = z.string().regex(/^\d{2}[./-]\d{2}[./-]\d{4}$/);
+const requiredFields: Array<keyof ParsedTrafficRequest> = [
+  "tckn",
+  "plate",
+  "documentSerialNo",
+  "birthDate",
+];
 
 export function parseTrafficMessage(message: string): ParsedTrafficRequest {
-  const normalized = message
-    .replace(/[ıİ]/g, (char) => (char === "ı" ? "i" : "I"))
-    .replace(/\s+/g, " ")
-    .trim();
+  const normalized = normalizeText(message);
 
-  const tckn = normalized.match(/(?:tckn|tc|t\.c\.?|kimlik|kimlik no)[:\s-]*([0-9]{11})/i)?.[1];
+  const tckn = findValue(
+    normalized,
+    /(?:\bTCKN\b|\bTC\b|T\.C\.?|KIMLIK(?:\s+NO)?)\s*[:=-]?\s*(\d{11})/i,
+  );
 
-  const plate = normalized.match(/(?:plaka)[:\s-]*([0-9]{2}\s?[A-ZÇĞIİÖŞÜ]{1,3}\s?[0-9]{2,5})/i)?.[1];
+  const plate = findValue(
+    normalized,
+    /(?:PLAKA)\s*[:=-]?\s*([0-9]{2}\s*[A-Z]{1,3}\s*[0-9]{2,5})/i,
+  );
 
-  const documentSerialNo = normalized.match(
-    /(?:belge seri no|belge no|seri no|seri|belge)[:\s-]*([A-ZÇĞIİÖŞÜ0-9-]{3,30})/i
-  )?.[1];
+  const documentSerialNo = findValue(
+    normalized,
+    /(?:BELGE\s+SERI\s+NO|SERI\s+NO|BELGE\s+NO|BELGE|SERI)\s*[:=-]?\s*([A-Z0-9-]{3,30})/i,
+  );
 
-  const birthDate = normalized.match(
-    /(?:dogum tarihi|doğum tarihi|dogum|doğum|dt)[:\s-]*([0-9]{2}[./-][0-9]{2}[./-][0-9]{4})/i
-  )?.[1];
+  const birthDate = findValue(
+    normalized,
+    /(?:DOGUM\s+TARIHI|DOGUM|DT)\s*[:=-]?\s*([0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{4}|[0-9]{4}[./-][0-9]{1,2}[./-][0-9]{1,2})/i,
+  );
 
   return {
-    tckn: tcknSchema.safeParse(tckn).success ? tckn : undefined,
-    plate: plateSchema.safeParse(plate?.replace(/\s/g, "").toUpperCase()).success
-      ? plate?.replace(/\s/g, "").toUpperCase()
-      : undefined,
-    documentSerialNo: serialSchema.safeParse(documentSerialNo?.toUpperCase()).success
-      ? documentSerialNo?.toUpperCase()
-      : undefined,
-    birthDate: birthDateSchema.safeParse(birthDate).success ? birthDate : undefined
+    tckn: normalizeTckn(tckn),
+    plate: normalizePlate(plate),
+    documentSerialNo: normalizeDocumentSerial(documentSerialNo),
+    birthDate: normalizeBirthDate(birthDate),
   };
 }
 
 export function getMissingTrafficFields(parsed: ParsedTrafficRequest): string[] {
-  const missing: string[] = [];
-  if (!parsed.tckn) missing.push("T.C. Kimlik No");
-  if (!parsed.plate) missing.push("Plaka");
-  if (!parsed.documentSerialNo) missing.push("Belge / Seri No");
-  if (!parsed.birthDate) missing.push("Doğum Tarihi");
-  return missing;
+  return requiredFields.filter((field) => !parsed[field]);
+}
+
+function findValue(message: string, pattern: RegExp): string | undefined {
+  return message.match(pattern)?.[1]?.trim();
+}
+
+function normalizeText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[ıİ]/g, (char) => (char === "ı" ? "i" : "I"))
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeTckn(value?: string): string | undefined {
+  const digits = value?.replace(/\D/g, "") ?? "";
+  return digits.length === 11 ? digits : undefined;
+}
+
+function normalizePlate(value?: string): string | undefined {
+  const plate = value?.replace(/\s+/g, "").toUpperCase() ?? "";
+  return /^[0-9]{2}[A-Z]{1,3}[0-9]{2,5}$/.test(plate) ? plate : undefined;
+}
+
+function normalizeDocumentSerial(value?: string): string | undefined {
+  const serial = value?.replace(/\s+/g, "").toUpperCase() ?? "";
+  return /^[A-Z0-9-]{3,30}$/.test(serial) ? serial : undefined;
+}
+
+function normalizeBirthDate(value?: string): string | undefined {
+  if (!value) return undefined;
+
+  const parts = value.split(/[./-]/).map((part) => Number(part));
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return undefined;
+
+  const [first, second, third] = parts;
+  const year = first > 1900 ? first : third;
+  const month = first > 1900 ? second : second;
+  const day = first > 1900 ? third : first;
+
+  if (!isValidDate(year, month, day)) return undefined;
+
+  return [
+    String(year).padStart(4, "0"),
+    String(month).padStart(2, "0"),
+    String(day).padStart(2, "0"),
+  ].join("-");
+}
+
+function isValidDate(year: number, month: number, day: number): boolean {
+  if (year < 1900 || year > new Date().getFullYear()) return false;
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
 }

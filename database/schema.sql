@@ -45,8 +45,25 @@ create table if not exists public.traffic_quote_results (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.whatsapp_messages (
+  id uuid primary key default gen_random_uuid(),
+  customer_phone text not null,
+  whatsapp_message_id text,
+  direction text not null check (direction in ('incoming', 'outgoing')),
+  body text not null,
+  status text,
+  request_id uuid references public.traffic_quote_requests(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_traffic_quote_requests_status
+on public.traffic_quote_requests(status);
+
+create index if not exists idx_traffic_quote_requests_created_at
+on public.traffic_quote_requests(created_at desc);
+
 create index if not exists idx_traffic_quote_requests_status_created
-on public.traffic_quote_requests(status, created_at);
+on public.traffic_quote_requests(status, created_at desc);
 
 create index if not exists idx_traffic_quote_requests_customer_phone
 on public.traffic_quote_requests(customer_phone);
@@ -54,20 +71,38 @@ on public.traffic_quote_requests(customer_phone);
 create index if not exists idx_traffic_quote_results_request_id
 on public.traffic_quote_results(request_id);
 
+create index if not exists idx_whatsapp_messages_customer_phone
+on public.whatsapp_messages(customer_phone);
+
+create index if not exists idx_whatsapp_messages_created_at
+on public.whatsapp_messages(created_at desc);
+
 alter table public.traffic_quote_requests enable row level security;
 alter table public.traffic_quote_results enable row level security;
+alter table public.whatsapp_messages enable row level security;
 
--- MVP notu:
--- Next.js API route'ları service role key ile çalışır.
--- Panel auth eklendiğinde RLS politikaları user/team bazlı sıkılaştırılmalı.
+-- MVP yaklaşımı: dashboard ve API route işlemleri server-side admin client ile çalışır.
+-- Service role sadece server tarafında kullanılır; public client için veri okuma policy'si açılmaz.
+drop policy if exists "service_role_can_manage_traffic_quote_requests" on public.traffic_quote_requests;
 create policy "service_role_can_manage_traffic_quote_requests"
 on public.traffic_quote_requests
 for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
+to service_role
+using (true)
+with check (true);
 
+drop policy if exists "service_role_can_manage_traffic_quote_results" on public.traffic_quote_results;
 create policy "service_role_can_manage_traffic_quote_results"
 on public.traffic_quote_results
 for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
+to service_role
+using (true)
+with check (true);
+
+drop policy if exists "service_role_can_manage_whatsapp_messages" on public.whatsapp_messages;
+create policy "service_role_can_manage_whatsapp_messages"
+on public.whatsapp_messages
+for all
+to service_role
+using (true)
+with check (true);

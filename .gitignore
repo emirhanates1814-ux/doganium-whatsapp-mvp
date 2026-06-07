@@ -1,4 +1,4 @@
-﻿node_modules
+node_modules
 .next
 out
 dist
@@ -6,18 +6,29 @@ build
 
 .env
 .env.local
+.env.local.backup
 .env.development.local
 .env.production.local
+
+.desktop/
+*.pid
+logs/
 
 worker/.venv
 worker/settings.json
 worker/downloads
+worker/logs/
 worker/*.log
-
-.DS_Store
-Thumbs.db
+worker/*.spec
+worker/**/__pycache__/
+worker/**/pycache/
+*.pyc
 
 .agents/
 skills-lock.json
-
 tsconfig.tsbuildinfo
+.next-dev.log
+.next-dev.err.log
+
+.DS_Store
+Thumbs.db

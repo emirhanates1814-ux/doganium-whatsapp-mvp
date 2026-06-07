@@ -1,13 +1,6 @@
-export type TrafficJobStatus =
-  | "pending"
-  | "missing_fields"
-  | "ready_for_worker"
-  | "running_doganium"
-  | "pdf_downloaded"
-  | "parsed"
-  | "sent_to_customer"
-  | "manual_review"
-  | "failed";
+import type { TrafficQuoteStatus } from "@/types/database";
+
+export type TrafficJobStatus = TrafficQuoteStatus;
 
 export type ParsedTrafficRequest = {
   tckn?: string;
@@ -23,7 +16,7 @@ export type TrafficQuoteResult = {
   highestPrice?: number;
   recommendedCompany?: string;
   recommendedPrice?: number;
-  pdfUrl?: string;
+  pdfUrl?: string | null;
   raw?: unknown;
 };
 

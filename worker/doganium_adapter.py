@@ -1,56 +1,84 @@
 from abc import ABC, abstractmethod
+from typing import Any
+
 from models import Job, QuoteResult
+
 
 class DoganiumAdapter(ABC):
     @abstractmethod
     def run_traffic_quote(self, job: Job) -> QuoteResult:
         raise NotImplementedError
 
+
 class MockDoganiumAdapter(DoganiumAdapter):
     def run_traffic_quote(self, job: Job) -> QuoteResult:
-        # MVP geliştirme aşamasında Doganium olmadan uçtan uca akışı test eder.
         return QuoteResult(
-            cheapestCompany="Örnek Sigorta A.Ş.",
-            cheapestPrice=8420.50,
-            highestCompany="Örnek Maksimum Sigorta",
-            highestPrice=12750.00,
-            recommendedCompany="Örnek Sigorta A.Ş.",
-            recommendedPrice=8420.50,
+            cheapestCompany="Test Sigorta",
+            cheapestPrice=12500,
+            highestCompany="Örnek Sigorta",
+            highestPrice=18500,
+            recommendedCompany="Test Sigorta",
+            recommendedPrice=12500,
             pdfUrl=None,
-            raw={
-                "mode": "mock",
-                "plate": job.plate,
-                "note": "Bu sonuç Doganium gerçek RPA entegrasyonu bağlanmadan üretilmiş test sonucudur."
-            },
+            raw={"mode": "mock", "plate": job.plate},
         )
 
+
 class PyWinAutoDoganiumAdapter(DoganiumAdapter):
-    def __init__(self, settings: dict):
+    def __init__(self, settings: dict[str, Any]):
         self.settings = settings
+        self.doganium_settings = settings.get("doganium", {})
 
     def run_traffic_quote(self, job: Job) -> QuoteResult:
-        # Bu katman gerçek Doganium ekranı görüldükten sonra tamamlanacak.
-        # Gerekli bilgiler:
-        # - Doganium executable path
-        # - login pencere başlığı
-        # - kullanıcı adı input automation id/name
-        # - şifre input automation id/name
-        # - EGM Sorgula button automation id/name
-        # - Trafik Sorgula button automation id/name
-        # - TCKN / Plaka / Seri No / Doğum Tarihi input selectorları
-        # - Trafiği Raporla button selectorı
-        # - PDF indirme konumu ve dosya adı davranışı
         try:
             from pywinauto.application import Application
         except ImportError as exc:
             raise RuntimeError("pywinauto kurulu değil. pip install -r requirements.txt çalıştırın.") from exc
 
-        raise NotImplementedError(
-            "Gerçek Doganium RPA adapter henüz selector bilgileri olmadan tamamlanamaz. "
-            "Önce worker mode=mock ile akışı test edin; sonra inspect.exe ile selectorları çıkarın."
+        _ = Application
+        self._open_app()
+        self._login()
+        self._fill_customer_inputs(job)
+        self._query_egm()
+        self._query_traffic()
+        self._export_traffic_report()
+        self._download_pdf()
+
+        raise RuntimeError(
+            "PyWinAuto Doganium adapter iskeleti hazır, ancak gerçek selectorlar henüz tanımlanmadı. "
+            "Worker mode=mock ile akışı test edin; selectorlar çıkarıldıktan sonra bu metotlar tamamlanmalı."
         )
 
-def create_adapter(settings: dict) -> DoganiumAdapter:
+    def _open_app(self) -> None:
+        # TODO: appPath ile Doganium uygulamasını aç.
+        pass
+
+    def _login(self) -> None:
+        # TODO: kullanıcı adı/şifre alanlarını selector ile doldur.
+        pass
+
+    def _fill_customer_inputs(self, job: Job) -> None:
+        # TODO: TCKN, plaka, belge seri no ve doğum tarihi inputlarını doldur.
+        _ = job
+
+    def _query_egm(self) -> None:
+        # TODO: EGM Sorgula aksiyonunu selector ile çalıştır.
+        pass
+
+    def _query_traffic(self) -> None:
+        # TODO: Trafik Sorgula aksiyonunu selector ile çalıştır.
+        pass
+
+    def _export_traffic_report(self) -> None:
+        # TODO: Trafiği Raporla aksiyonunu selector ile çalıştır.
+        pass
+
+    def _download_pdf(self) -> None:
+        # TODO: PDF indirme klasörünü izle ve dosyayı doğrula.
+        pass
+
+
+def create_adapter(settings: dict[str, Any]) -> DoganiumAdapter:
     mode = settings.get("mode", "mock")
     if mode == "mock":
         return MockDoganiumAdapter()
