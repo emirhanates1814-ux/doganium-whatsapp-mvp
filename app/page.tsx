@@ -1,6 +1,17 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { data: todos } = await supabase
+    .from("todos")
+    .select("id, name")
+    .limit(10);
+
   return (
     <main className="min-h-screen bg-slate-100 p-6">
       <section className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -28,6 +39,19 @@ export default function HomePage() {
             <h2 className="font-semibold text-slate-950">3. Teklif Gönder</h2>
             <p className="mt-2 text-sm text-slate-600">PDF sonucu okunur, fiyat özeti hazırlanır ve WhatsApp cevabı gönderilir.</p>
           </div>
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-slate-200 p-5">
+          <h2 className="font-semibold text-slate-950">Supabase Todos</h2>
+          {todos?.length ? (
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+              {todos.map((todo) => (
+                <li key={todo.id}>{todo.name}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-slate-600">Henüz todo kaydı yok.</p>
+          )}
         </div>
 
         <div className="mt-8">
