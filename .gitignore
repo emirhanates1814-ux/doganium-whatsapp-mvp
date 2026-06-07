@@ -17,6 +17,7 @@ logs/
 worker/.venv
 worker/settings.json
 worker/downloads
+worker/inspect-output/
 worker/logs/
 worker/*.log
 worker/*.spec

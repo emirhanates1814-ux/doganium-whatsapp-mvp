@@ -7,6 +7,12 @@
     "appPath": "C:\\Program Files\\Doganium\\Doganium.exe",
     "username": "",
     "password": "",
-    "downloadFolder": "C:\\DoganiumAutomation\\downloads"
+    "downloadFolder": "C:\\DoganiumAutomation\\downloads",
+    "coordinates": {
+      "loginButton": {
+        "x": 273,
+        "y": 691
+      }
+    }
   }
 }

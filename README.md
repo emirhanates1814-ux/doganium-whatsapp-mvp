@@ -100,6 +100,56 @@ python main.py
 
 İlk aşamada `mode` değeri `mock` kalmalıdır.
 
+## Doganium UI Inspect
+
+Gerçek Doganium otomasyonuna geçmeden önce açık pencere başlıklarını ve UI Automation tree çıktısını alın.
+
+Pencereleri listeleme:
+
+```powershell
+.\scripts\inspect-doganium.ps1
+```
+
+Başlığa göre Doganium penceresini dump etme:
+
+```powershell
+.\scripts\inspect-doganium.ps1 -Title "Doganium"
+```
+
+Tüm görünür top-level pencereleri dump etme:
+
+```powershell
+.\scripts\inspect-doganium.ps1 -DumpAll
+```
+
+Çıktı console'a basılır ve `worker/inspect-output/doganium-ui-tree.txt` dosyasına yazılır. Password alanlarında value dump edilmez.
+
+## Coordinate Fallback
+
+Doganium ekranı CefSharp içinde çalıştığı için ilk gerçek otomasyon aşamasında coordinate/keyboard fallback kullanılacak. Doganium penceresi her smoke test ve worker çalışmasında `100,100` konumuna, `1200x750` boyutuna alınır. Koordinatlar bu sabit pencere yerleşimine göre ölçülür.
+
+Yönetici yetkisi zorunludur; VS Code veya PowerShell yönetici olarak çalışmalıdır.
+
+Pencere smoke testi:
+
+```powershell
+.\scripts\smoke-doganium-window.ps1
+```
+
+Mouse koordinat ölçümü:
+
+```powershell
+.\scripts\coordinate-probe.ps1
+```
+
+Probe çıktısında `screenX`, `screenY`, `relativeX`, `relativeY` görünür. Login alanı, şifre alanı ve giriş butonu koordinatları `relativeX/relativeY` değerleriyle çıkarılmalıdır.
+
+Login smoke testi:
+
+```powershell
+.\scripts\login-doganium-smoke.ps1
+```
+
 ## Test Talebi
 
 ```powershell
