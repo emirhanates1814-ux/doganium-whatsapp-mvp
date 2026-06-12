@@ -1,5 +1,5 @@
-node_modules
-.next
+node_modules/
+.next/
 out
 dist
 build
@@ -14,7 +14,7 @@ build
 *.pid
 logs/
 
-worker/.venv
+worker/.venv/
 worker/settings.json
 worker/downloads
 worker/inspect-output/
