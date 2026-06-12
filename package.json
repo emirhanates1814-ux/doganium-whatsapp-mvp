@@ -1,34 +1,42 @@
 {
-  "name": "doganium-whatsapp-mvp",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run build"
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.107.0",
-    "@tailwindcss/postcss": "^4.3.0",
-    "date-fns": "latest",
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "zod": "latest"
-  },
-  "devDependencies": {
-    "@types/node": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "autoprefixer": "latest",
-    "eslint": "latest",
-    "eslint-config-next": "latest",
-    "postcss": "latest",
-    "tailwindcss": "latest",
-    "typescript": "latest"
-  }
+    "name": "doganium-whatsapp-mvp",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint",
+        "typecheck": "tsc --noEmit",
+        "check": "npm run typecheck && npm run build",
+        "dev:web": "next dev",
+        "dev:electron": "electron .",
+        "desktop:dev": "concurrently \"npm.cmd run dev:web\" \"wait-on http://127.0.0.1:3000/desktop && npm.cmd run dev:electron\"",
+        "desktop:electron": "electron ."
+    },
+    "dependencies": {
+        "@supabase/ssr": "^0.10.3",
+        "@supabase/supabase-js": "^2.107.0",
+        "@tailwindcss/postcss": "^4.3.0",
+        "date-fns": "latest",
+        "next": "latest",
+        "react": "latest",
+        "react-dom": "latest",
+        "zod": "latest"
+    },
+    "devDependencies": {
+        "@types/node": "latest",
+        "@types/react": "latest",
+        "@types/react-dom": "latest",
+        "autoprefixer": "latest",
+        "concurrently": "^10.0.3",
+        "electron": "^42.4.0",
+        "eslint": "latest",
+        "eslint-config-next": "latest",
+        "postcss": "latest",
+        "tailwindcss": "latest",
+        "typescript": "latest",
+        "wait-on": "^9.0.10"
+    },
+    "main": "electron/main.js"
 }
