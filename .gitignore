@@ -33,3 +33,6 @@ tsconfig.tsbuildinfo
 
 .DS_Store
 Thumbs.db
+
+DawnCache/
+GPUCache/
