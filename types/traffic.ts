@@ -1,12 +1,45 @@
-import type { TrafficQuoteStatus } from "@/types/database";
+export type TrafficQuoteStatus =
+  | "pending"
+  | "missing_fields"
+  | "ready_for_worker"
+  | "running_doganium"
+  | "pdf_downloaded"
+  | "parsed"
+  | "sent_to_customer"
+  | "manual_review"
+  | "failed";
 
+export type TrafficRequestJobStatus =
+  | "pending"
+  | "running"
+  | "waiting_mfa"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export type LegacyTrafficJobStatus = TrafficQuoteStatus;
 export type TrafficJobStatus = TrafficQuoteStatus;
 
 export type ParsedTrafficRequest = {
   tckn?: string;
   plate?: string;
+  documentSerial?: string;
   documentSerialNo?: string;
   birthDate?: string;
+};
+
+export type TrafficParseField = "tckn" | "plate" | "documentSerial" | "birthDate";
+
+export type TrafficParseResult = {
+  ok: boolean;
+  data?: {
+    tckn?: string;
+    plate?: string;
+    documentSerial?: string;
+    birthDate?: string;
+  };
+  missingFields?: TrafficParseField[];
+  errors?: string[];
 };
 
 export type TrafficQuoteResult = {
@@ -32,4 +65,18 @@ export type TrafficQuoteRequest = {
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type TrafficJobResultQuote = {
+  company: string;
+  premium: number;
+  currency: "TRY" | string;
+  description?: string | null;
+};
+
+export type TrafficJobResultPayload = {
+  quotes: TrafficJobResultQuote[];
+  cheapestPremium?: number | null;
+  highestPremium?: number | null;
+  summary?: string | null;
 };

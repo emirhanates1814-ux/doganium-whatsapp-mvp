@@ -10,6 +10,8 @@ build
 .env.development.local
 .env.production.local
 
+.data/
+.logs/
 .desktop/
 *.pid
 logs/

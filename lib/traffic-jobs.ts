@@ -1,7 +1,30 @@
-import { getSupabaseAdminClient } from "./supabase-admin";
-import { maskBirthDate, maskDocumentSerial, maskTckn } from "./masking";
-import type { Json } from "@/types/database";
-import type { ParsedTrafficRequest, TrafficJobStatus, TrafficQuoteResult } from "@/types/traffic";
+import {
+  createTrafficJob as createLocalTrafficJob,
+  getTrafficJob as getLocalTrafficJob,
+  getTrafficJobResult as getLocalTrafficJobResult,
+  listTrafficJobs as listLocalTrafficJobs,
+  saveTrafficJobResult as saveLocalTrafficJobResult,
+  updateTrafficJobStatus as updateLocalTrafficJobStatus,
+  type CreateLocalTrafficJobInput,
+  type ListLocalTrafficJobsFilters,
+  type LocalTrafficJob,
+  type LocalTrafficJobResult,
+} from "./local-traffic-store";
+import type {
+  LegacyTrafficJobStatus,
+  ParsedTrafficRequest,
+  TrafficJobResultPayload,
+  TrafficQuoteResult,
+} from "@/types/traffic";
+
+export type ServiceResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; details?: unknown };
+
+export type CreateTrafficJobInput = CreateLocalTrafficJobInput;
+export type ListTrafficJobsFilters = ListLocalTrafficJobsFilters;
+export type TrafficJobRow = LocalTrafficJob;
+export type TrafficJobResultRow = LocalTrafficJobResult;
 
 export type WorkerJob = {
   id: string;
@@ -10,14 +33,14 @@ export type WorkerJob = {
   plate: string;
   document_serial_no: string;
   birth_date: string;
-  status: TrafficJobStatus;
+  status: LegacyTrafficJobStatus;
 };
 
 export type DashboardRequestRow = {
   id: string;
   customer_phone: string;
   plate: string | null;
-  status: TrafficJobStatus;
+  status: LegacyTrafficJobStatus;
   created_at: string;
 };
 
@@ -39,39 +62,151 @@ export type DashboardData = {
   totalCount: number;
 };
 
+const trafficRequestStatuses = [
+  "pending",
+  "running",
+  "waiting_mfa",
+  "completed",
+  "failed",
+  "cancelled",
+] as const;
+
+export function isTrafficJobStatus(value: string | null): value is TrafficJobRow["status"] {
+  return trafficRequestStatuses.includes(value as TrafficJobRow["status"]);
+}
+
+export async function createTrafficJobFromMessage(input: {
+  customerPhone: string;
+  rawMessage: string;
+  source?: "manual" | "whatsapp" | "test";
+}): Promise<ServiceResult<TrafficJobRow>> {
+  const { parseTrafficMessage } = await import("./traffic-parser");
+  const parsed = parseTrafficMessage(input.rawMessage);
+
+  if (!parsed.ok) {
+    return {
+      ok: false,
+      error: "Traffic message is missing required fields.",
+      details: {
+        missingFields: parsed.missingFields ?? [],
+        errors: parsed.errors ?? [],
+        data: parsed.data ?? {},
+      },
+    };
+  }
+
+  return createTrafficJob({
+    customerPhone: input.customerPhone,
+    rawMessage: input.rawMessage,
+    source: input.source ?? "whatsapp",
+    tckn: parsed.data?.tckn,
+    plate: parsed.data?.plate,
+    documentSerial: parsed.data?.documentSerial,
+    birthDate: parsed.data?.birthDate,
+    status: "pending",
+  });
+}
+
+export async function createTrafficJob(
+  input: CreateTrafficJobInput,
+): Promise<ServiceResult<TrafficJobRow>> {
+  try {
+    const data = await createLocalTrafficJob(input);
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: "Traffic job could not be created.", details: error };
+  }
+}
+
+export async function listTrafficJobs(
+  filters: ListTrafficJobsFilters = {},
+): Promise<ServiceResult<TrafficJobRow[]>> {
+  try {
+    const data = await listLocalTrafficJobs(filters);
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: "Traffic jobs could not be listed.", details: error };
+  }
+}
+
+export async function getTrafficJob(id: string): Promise<ServiceResult<TrafficJobRow | null>> {
+  try {
+    const data = await getLocalTrafficJob(id);
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: "Traffic job could not be loaded.", details: error };
+  }
+}
+
+export async function updateTrafficJobStatus(
+  id: string,
+  status: TrafficJobRow["status"],
+  extra: { errorMessage?: string | null } = {},
+): Promise<ServiceResult<TrafficJobRow>> {
+  try {
+    const data = await updateLocalTrafficJobStatus(id, status, extra);
+
+    if (!data) {
+      return { ok: false, error: "Traffic job not found." };
+    }
+
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: "Traffic job status could not be updated.", details: error };
+  }
+}
+
+export async function saveTrafficJobResult(
+  id: string,
+  result: TrafficJobResultPayload,
+): Promise<ServiceResult<TrafficJobResultRow>> {
+  try {
+    const job = await getLocalTrafficJob(id);
+    if (!job) return { ok: false, error: "Traffic job not found." };
+
+    const data = await saveLocalTrafficJobResult(id, result);
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: "Traffic job result could not be saved.", details: error };
+  }
+}
+
+export async function getTrafficJobResult(
+  id: string,
+): Promise<ServiceResult<TrafficJobResultRow | null>> {
+  try {
+    const data = await getLocalTrafficJobResult(id);
+    return { ok: true, data };
+  } catch (error) {
+    return { ok: false, error: "Traffic job result could not be loaded.", details: error };
+  }
+}
+
+// Compatibility exports for older MVP pages/routes. They use local storage and do not require Supabase.
 export async function createTrafficQuoteRequest(input: {
   customerPhone: string;
   whatsappMessageId?: string;
   rawMessage: string;
   parsed: ParsedTrafficRequest;
-  status: TrafficJobStatus;
+  status: LegacyTrafficJobStatus;
   missingFields: string[];
 }) {
-  const supabase = getSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("traffic_quote_requests")
-    .insert({
-      customer_phone: input.customerPhone,
-      whatsapp_message_id: input.whatsappMessageId ?? null,
-      raw_message: input.rawMessage,
-      tckn: input.parsed.tckn ?? null,
-      tckn_masked: maskTckn(input.parsed.tckn),
-      plate: input.parsed.plate ?? null,
-      document_serial_no: input.parsed.documentSerialNo ?? null,
-      document_serial_no_masked: maskDocumentSerial(input.parsed.documentSerialNo),
-      birth_date: input.parsed.birthDate ?? null,
-      birth_date_masked: maskBirthDate(input.parsed.birthDate),
-      status: input.status,
-      missing_fields: input.missingFields,
-    })
-    .select("id")
-    .single();
+  const created = await createTrafficJob({
+    customerPhone: input.customerPhone,
+    rawMessage: input.rawMessage,
+    tckn: input.parsed.tckn,
+    plate: input.parsed.plate,
+    documentSerial: input.parsed.documentSerial ?? input.parsed.documentSerialNo,
+    birthDate: input.parsed.birthDate,
+    source: "whatsapp",
+    status: input.missingFields.length > 0 ? "failed" : "pending",
+  });
 
-  if (error) throw error;
-  return data;
+  if (!created.ok) throw new Error(created.error);
+  return { id: created.data.id };
 }
 
-export async function recordWhatsAppMessage(input: {
+export async function recordWhatsAppMessage(_input?: {
   customerPhone: string;
   whatsappMessageId?: string | null;
   direction: "incoming" | "outgoing";
@@ -79,159 +214,84 @@ export async function recordWhatsAppMessage(input: {
   status?: string | null;
   requestId?: string | null;
 }) {
-  const supabase = getSupabaseAdminClient();
-  const { error } = await supabase.from("whatsapp_messages").insert({
-    customer_phone: input.customerPhone,
-    whatsapp_message_id: input.whatsappMessageId ?? null,
-    direction: input.direction,
-    body: input.body,
-    status: input.status ?? null,
-    request_id: input.requestId ?? null,
-  });
-
-  if (error) throw error;
+  return;
 }
 
 export async function getNextJobForWorker(): Promise<WorkerJob | null> {
-  const supabase = getSupabaseAdminClient();
+  const listed = await listLocalTrafficJobs({ status: "pending", limit: 1 });
+  const job = listed.sort((left, right) => left.createdAt.localeCompare(right.createdAt))[0];
 
-  for (const status of ["ready_for_worker", "pending"] satisfies TrafficJobStatus[]) {
-    const { data, error } = await supabase
-      .from("traffic_quote_requests")
-      .select("id, customer_phone, tckn, plate, document_serial_no, birth_date, status")
-      .eq("status", status)
-      .not("tckn", "is", null)
-      .not("plate", "is", null)
-      .not("document_serial_no", "is", null)
-      .not("birth_date", "is", null)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+  if (!job?.tckn || !job.plate || !job.documentSerial || !job.birthDate) return null;
 
-    if (error) throw error;
-
-    if (data?.tckn && data.plate && data.document_serial_no && data.birth_date) {
-      return {
-        id: data.id,
-        customer_phone: data.customer_phone,
-        tckn: data.tckn,
-        plate: data.plate,
-        document_serial_no: data.document_serial_no,
-        birth_date: data.birth_date,
-        status: data.status,
-      };
-    }
-  }
-
-  return null;
+  return {
+    id: job.id,
+    customer_phone: job.customerPhone,
+    tckn: job.tckn,
+    plate: job.plate,
+    document_serial_no: job.documentSerial,
+    birth_date: job.birthDate,
+    status: "pending",
+  };
 }
 
 export async function markJobRunning(id: string) {
-  const supabase = getSupabaseAdminClient();
-  const { error } = await supabase
-    .from("traffic_quote_requests")
-    .update({ status: "running_doganium", updated_at: new Date().toISOString() })
-    .eq("id", id);
-
-  if (error) throw error;
+  const updated = await updateTrafficJobStatus(id, "running");
+  if (!updated.ok) throw new Error(updated.error);
 }
 
 export async function saveJobResult(input: {
   requestId: string;
   result: TrafficQuoteResult;
-  status?: TrafficJobStatus;
+  status?: LegacyTrafficJobStatus;
 }) {
-  const supabase = getSupabaseAdminClient();
-  const { error: resultError } = await supabase.from("traffic_quote_results").insert({
-    request_id: input.requestId,
-    pdf_url: input.result.pdfUrl ?? null,
-    cheapest_company: input.result.cheapestCompany,
-    cheapest_price: input.result.cheapestPrice,
-    highest_company: input.result.highestCompany ?? null,
-    highest_price: input.result.highestPrice ?? null,
-    recommended_company: input.result.recommendedCompany ?? null,
-    recommended_price: input.result.recommendedPrice ?? null,
-    raw_result_json: (input.result.raw ?? null) as Json | null,
+  const saved = await saveTrafficJobResult(input.requestId, {
+    quotes: [
+      {
+        company: input.result.cheapestCompany,
+        premium: input.result.cheapestPrice,
+        currency: "TRY",
+        description: "Legacy quote result",
+      },
+    ],
+    cheapestPremium: input.result.cheapestPrice,
+    highestPremium: input.result.highestPrice ?? input.result.cheapestPrice,
+    summary: "Legacy quote result",
   });
 
-  if (resultError) throw resultError;
-
-  const { error: updateError } = await supabase
-    .from("traffic_quote_requests")
-    .update({ status: input.status ?? "parsed", updated_at: new Date().toISOString() })
-    .eq("id", input.requestId);
-
-  if (updateError) throw updateError;
+  if (!saved.ok) throw new Error(saved.error);
+  await updateTrafficJobStatus(input.requestId, "completed");
 }
 
 export async function markJobFailed(id: string, errorMessage: string) {
-  const supabase = getSupabaseAdminClient();
-  const { error } = await supabase
-    .from("traffic_quote_requests")
-    .update({
-      status: "failed",
-      error_message: errorMessage.slice(0, 1000),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-
-  if (error) throw error;
+  const updated = await updateTrafficJobStatus(id, "failed", { errorMessage });
+  if (!updated.ok) throw new Error(updated.error);
 }
 
 export async function listDashboardData(): Promise<DashboardData> {
-  // Auth yokken dashboard'u RLS policy açmadan server-side admin client ile okuyoruz.
-  const supabase = getSupabaseAdminClient();
-  const {
-    data: requestData,
-    error: requestError,
-    count,
-  } = await supabase
-    .from("traffic_quote_requests")
-    .select("id, customer_phone, plate, status, created_at", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (requestError) throw requestError;
-
-  const requests = requestData ?? [];
-  const requestIds = requests.map((request) => request.id);
-  const resultsByRequest = new Map<string, DashboardResultRow>();
-
-  if (requestIds.length > 0) {
-    const { data: resultData, error: resultError } = await supabase
-      .from("traffic_quote_results")
-      .select(
-        "id, request_id, cheapest_company, cheapest_price, highest_company, highest_price, recommended_company, recommended_price, created_at",
-      )
-      .in("request_id", requestIds)
-      .order("created_at", { ascending: false });
-
-    if (resultError) throw resultError;
-
-    for (const result of resultData ?? []) {
-      if (!resultsByRequest.has(result.request_id)) {
-        resultsByRequest.set(result.request_id, result);
-      }
-    }
-  }
+  const jobs = await listLocalTrafficJobs({ limit: 50 });
+  const requests = jobs.map<DashboardRequestRow>((job) => ({
+    id: job.id,
+    customer_phone: job.customerPhone,
+    plate: job.plate ?? null,
+    status: mapLocalStatusToLegacy(job.status),
+    created_at: job.createdAt,
+  }));
 
   return {
     requests,
-    resultsByRequest,
-    totalCount: count ?? requests.length,
+    resultsByRequest: new Map(),
+    totalCount: requests.length,
   };
 }
 
 export async function listRecentJobs() {
-  const supabase = getSupabaseAdminClient();
-  const { data, error } = await supabase
-    .from("traffic_quote_requests")
-    .select(
-      "id, customer_phone, tckn_masked, plate, document_serial_no_masked, birth_date_masked, status, error_message, created_at, updated_at, traffic_quote_results(*)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(50);
+  return listLocalTrafficJobs({ limit: 50 });
+}
 
-  if (error) throw error;
-  return data ?? [];
+function mapLocalStatusToLegacy(status: TrafficJobRow["status"]): LegacyTrafficJobStatus {
+  if (status === "completed") return "parsed";
+  if (status === "running") return "running_doganium";
+  if (status === "failed") return "failed";
+  if (status === "waiting_mfa") return "manual_review";
+  return "pending";
 }

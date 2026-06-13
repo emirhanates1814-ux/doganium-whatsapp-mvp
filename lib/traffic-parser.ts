@@ -1,45 +1,64 @@
-import type { ParsedTrafficRequest } from "@/types/traffic";
+import type { ParsedTrafficRequest, TrafficParseField, TrafficParseResult } from "@/types/traffic";
 
-const requiredFields: Array<keyof ParsedTrafficRequest> = [
-  "tckn",
-  "plate",
-  "documentSerialNo",
-  "birthDate",
-];
+const requiredFields: TrafficParseField[] = ["tckn", "plate", "documentSerial", "birthDate"];
 
-export function parseTrafficMessage(message: string): ParsedTrafficRequest {
-  const normalized = normalizeText(message);
+export function parseTrafficMessage(message: string): TrafficParseResult {
+  const normalized = normalizeText(message ?? "");
+  const errors: string[] = [];
 
-  const tckn = findValue(
+  const rawTckn = findValue(
     normalized,
-    /(?:\bTCKN\b|\bTC\b|T\.C\.?|KIMLIK(?:\s+NO)?)\s*[:=-]?\s*(\d{11})/i,
+    /(?:\bTCKN\b|\bTC\b|T\s*\.?\s*C\s*\.?|\bKIMLIK(?:\s+NO)?)\s*[:=-]?\s*([0-9\-\s]{10,20})/i,
   );
-
-  const plate = findValue(
+  const rawPlate = findValue(
     normalized,
     /(?:PLAKA)\s*[:=-]?\s*([0-9]{2}\s*[A-Z]{1,3}\s*[0-9]{2,5})/i,
   );
-
-  const documentSerialNo = findValue(
+  const rawDocumentSerial = findValue(
     normalized,
-    /(?:BELGE\s+SERI\s+NO|SERI\s+NO|BELGE\s+NO|BELGE|SERI)\s*[:=-]?\s*([A-Z0-9-]{3,30})/i,
+    /(?:RUHSAT\s+SERI\s+NO|BELGE\s+SERI\s+NO|BELGE\s+NO|SERI\s+NO|BELGE|SERI)\s*[:=-]?\s*([A-Z0-9-]{3,30})/i,
+  );
+  const rawBirthDate = findValue(
+    normalized,
+    /(?:DOGUM\s+TARIHI|DOGUM|D\s*\.?\s*T\s*\.?)\s*[:=-]?\s*([0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{4}|[0-9]{4}[./-][0-9]{1,2}[./-][0-9]{1,2})/i,
   );
 
-  const birthDate = findValue(
-    normalized,
-    /(?:DOGUM\s+TARIHI|DOGUM|DT)\s*[:=-]?\s*([0-9]{1,2}[./-][0-9]{1,2}[./-][0-9]{4}|[0-9]{4}[./-][0-9]{1,2}[./-][0-9]{1,2})/i,
-  );
+  const data = {
+    tckn: normalizeTckn(rawTckn),
+    plate: normalizePlate(rawPlate),
+    documentSerial: normalizeDocumentSerial(rawDocumentSerial),
+    birthDate: normalizeBirthDate(rawBirthDate),
+  };
+
+  if (rawTckn && !data.tckn) errors.push("TCKN must be 11 digits.");
+  if (rawPlate && !data.plate) errors.push("Plate format is invalid.");
+  if (rawBirthDate && !data.birthDate) errors.push("Birth date format is invalid.");
+
+  const missingFields = requiredFields.filter((field) => !data[field]);
 
   return {
-    tckn: normalizeTckn(tckn),
-    plate: normalizePlate(plate),
-    documentSerialNo: normalizeDocumentSerial(documentSerialNo),
-    birthDate: normalizeBirthDate(birthDate),
+    ok: missingFields.length === 0 && errors.length === 0,
+    data,
+    missingFields,
+    errors,
   };
 }
 
 export function getMissingTrafficFields(parsed: ParsedTrafficRequest): string[] {
   return requiredFields.filter((field) => !parsed[field]);
+}
+
+export function normalizeTrafficInput(input: ParsedTrafficRequest): ParsedTrafficRequest {
+  const documentSerial = input.documentSerial ?? input.documentSerialNo;
+  const normalizedDocumentSerial = normalizeDocumentSerial(documentSerial);
+
+  return {
+    tckn: normalizeTckn(input.tckn),
+    plate: normalizePlate(input.plate),
+    documentSerial: normalizedDocumentSerial,
+    documentSerialNo: normalizedDocumentSerial,
+    birthDate: normalizeBirthDate(input.birthDate),
+  };
 }
 
 function findValue(message: string, pattern: RegExp): string | undefined {
@@ -48,9 +67,10 @@ function findValue(message: string, pattern: RegExp): string | undefined {
 
 function normalizeText(value: string): string {
   return value
+    .replace(/\u0131/g, "i")
+    .replace(/\u0130/g, "I")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[ıİ]/g, (char) => (char === "ı" ? "i" : "I"))
     .toUpperCase()
     .replace(/\s+/g, " ")
     .trim();
@@ -77,10 +97,10 @@ function normalizeBirthDate(value?: string): string | undefined {
   const parts = value.split(/[./-]/).map((part) => Number(part));
   if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return undefined;
 
-  const [first, second, third] = parts;
-  const year = first > 1900 ? first : third;
-  const month = first > 1900 ? second : second;
-  const day = first > 1900 ? third : first;
+  const isYearFirst = parts[0] > 1900;
+  const year = isYearFirst ? parts[0] : parts[2];
+  const month = parts[1];
+  const day = isYearFirst ? parts[2] : parts[0];
 
   if (!isValidDate(year, month, day)) return undefined;
 

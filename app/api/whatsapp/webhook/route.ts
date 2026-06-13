@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSafeErrorMessage, getWhatsAppVerifyToken } from "@/lib/env";
-import { buildMissingFieldsMessage } from "@/lib/message-templates";
-import { createTrafficQuoteRequest, recordWhatsAppMessage } from "@/lib/traffic-jobs";
-import { getMissingTrafficFields, parseTrafficMessage } from "@/lib/traffic-parser";
-import { extractTextMessagesFromWebhook, sendWhatsappTextMessage } from "@/lib/whatsapp";
+import { createTrafficJob, recordWhatsAppMessage } from "@/lib/traffic-jobs";
+import { parseTrafficMessage } from "@/lib/traffic-parser";
+import { extractTextMessagesFromWebhook } from "@/lib/whatsapp";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -16,7 +15,7 @@ export async function GET(request: NextRequest) {
   try {
     verifyToken = getWhatsAppVerifyToken();
   } catch (error) {
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: getSafeErrorMessage(error) }, { status: 500 });
   }
 
   if (mode === "subscribe" && token === verifyToken && challenge) {
@@ -26,65 +25,73 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return NextResponse.json({ error: "Webhook verification failed." }, { status: 403 });
+  return NextResponse.json({ ok: false, error: "Webhook verification failed." }, { status: 403 });
 }
 
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
     const messages = extractTextMessagesFromWebhook(payload);
+    const results = [];
 
     for (const message of messages) {
       const body = message.text.body;
       const parsed = parseTrafficMessage(body);
-      const missingFields = getMissingTrafficFields(parsed);
-      const status = missingFields.length > 0 ? "missing_fields" : "ready_for_worker";
-
-      const requestRow = await createTrafficQuoteRequest({
-        customerPhone: message.from,
-        whatsappMessageId: message.id,
-        rawMessage: body,
-        parsed,
-        status,
-        missingFields,
-      });
 
       await recordWhatsAppMessage({
         customerPhone: message.from,
         whatsappMessageId: message.id,
         direction: "incoming",
         body,
-        status: "received",
-        requestId: requestRow.id,
+        status: parsed.ok ? "parsed" : "missing_fields",
       });
 
-      const reply =
-        missingFields.length > 0
-          ? buildMissingFieldsMessage(missingFields)
-          : "Bilgileriniz alınmıştır. Trafik sigortası teklif çalışmanız başlatılıyor.";
-
-      try {
-        await sendWhatsappTextMessage({ to: message.from, message: reply });
-        await recordWhatsAppMessage({
+      if (!parsed.ok) {
+        results.push({
+          ok: false,
           customerPhone: message.from,
-          direction: "outgoing",
-          body: reply,
-          status: "sent",
-          requestId: requestRow.id,
+          whatsappMessageId: message.id,
+          error: "Traffic message is missing required fields.",
+          details: {
+            missingFields: parsed.missingFields ?? [],
+            errors: parsed.errors ?? [],
+            data: parsed.data ?? {},
+          },
         });
-      } catch {
-        await recordWhatsAppMessage({
-          customerPhone: message.from,
-          direction: "outgoing",
-          body: reply,
-          status: "send_failed",
-          requestId: requestRow.id,
-        });
+        continue;
       }
+
+      const created = await createTrafficJob({
+        customerPhone: message.from,
+        tckn: parsed.data?.tckn,
+        plate: parsed.data?.plate,
+        documentSerial: parsed.data?.documentSerial,
+        birthDate: parsed.data?.birthDate,
+        rawMessage: body,
+        source: "whatsapp",
+        status: "pending",
+      });
+
+      results.push({
+        ok: created.ok,
+        customerPhone: message.from,
+        whatsappMessageId: message.id,
+        data: created.ok ? created.data : undefined,
+        error: created.ok ? undefined : created.error,
+        details: created.ok ? undefined : created.details,
+      });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      processed: results.length,
+      ignored: messages.length === 0,
+      results,
+    });
   } catch (error) {
-    return NextResponse.json({ error: getSafeErrorMessage(error) }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: getSafeErrorMessage(error) },
+      { status: 500 },
+    );
   }
 }
