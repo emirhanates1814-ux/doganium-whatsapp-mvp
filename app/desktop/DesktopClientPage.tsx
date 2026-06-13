@@ -5,6 +5,8 @@ import type { CSSProperties } from "react";
 
 interface DesktopSettings {
   doganiumExePath?: string;
+  doganiumUsername?: string;
+  doganiumPassword?: string;
   devtoolsPort?: number;
   devtoolsArgs?: string[];
   settingsReadError?: string;
@@ -34,13 +36,32 @@ declare global {
   }
 }
 
+function maskSensitive(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(maskSensitive);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        key.toLowerCase().includes("password") ? "********" : maskSensitive(entry),
+      ]),
+    );
+  }
+
+  return value;
+}
+
 function formatJson(value: unknown) {
-  return JSON.stringify(value, null, 2);
+  return JSON.stringify(maskSensitive(value), null, 2);
 }
 
 export default function DesktopClientPage() {
   const [settings, setSettings] = useState<DesktopSettings>({});
   const [exePath, setExePath] = useState("");
+  const [doganiumUsername, setDoganiumUsername] = useState("");
+  const [doganiumPassword, setDoganiumPassword] = useState("");
   const [status, setStatus] = useState("Hazır");
   const [lastResult, setLastResult] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -84,6 +105,8 @@ export default function DesktopClientPage() {
       if (result.data) {
         setSettings(result.data);
         setExePath(result.data.doganiumExePath || "");
+        setDoganiumUsername(result.data.doganiumUsername || "");
+        setDoganiumPassword(result.data.doganiumPassword || "");
       }
     });
   }
@@ -105,7 +128,7 @@ export default function DesktopClientPage() {
   }, []);
 
   async function saveSettings() {
-    await runAction("Ayarları kaydet", (api) => api.writeSettings({ doganiumExePath: exePath, devtoolsPort: 9222 }), (result) => {
+    await runAction("Ayarları kaydet", (api) => api.writeSettings({ doganiumExePath: exePath, doganiumUsername, doganiumPassword, devtoolsPort: 9222 }), (result) => {
       if (result.data) setSettings(result.data);
     });
   }
@@ -171,6 +194,27 @@ export default function DesktopClientPage() {
               placeholder="Örnek: C:\\Program Files (x86)\\Doğanium Hızlı Teklif\\Doganium.FormUI.exe"
               style={{ width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 14 }}
             />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 14, marginBottom: 8 }}>Doganium kullanıcı adı</label>
+                <input
+                  value={doganiumUsername}
+                  onChange={(event) => setDoganiumUsername(event.target.value)}
+                  autoComplete="username"
+                  style={{ width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 14 }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", color: "#475569", fontSize: 14, marginBottom: 8 }}>Doganium şifre</label>
+                <input
+                  value={doganiumPassword}
+                  onChange={(event) => setDoganiumPassword(event.target.value)}
+                  type="password"
+                  autoComplete="current-password"
+                  style={{ width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 14 }}
+                />
+              </div>
+            </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
               <button disabled={actionsDisabled} onClick={selectExe} style={buttonStyle("#334155", "white", actionsDisabled)}>Exe seç</button>
               <button disabled={actionsDisabled} onClick={saveSettings} style={buttonStyle("#0f766e", "white", actionsDisabled)}>Kaydet</button>
