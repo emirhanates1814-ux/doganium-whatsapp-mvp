@@ -1,191 +1,178 @@
-# Doganium WhatsApp MVP
+# Doganium WhatsApp Trafik Teklif Otomasyonu MVP
 
-WhatsApp üzerinden gelen trafik sigortası bilgilerini alıp Supabase'e kaydeden, Doganium worker kuyruğuna aktaran ve teklif sonucu hazır olduğunda müşteriye güvenli WhatsApp özeti gönderen MVP altyapısı.
+Doganium WhatsApp MVP, Ares Sigorta icin yerel Windows masaustu ortaminda calisan trafik sigortasi teklif otomasyonu prototipidir. Amac; teklif islerini almak veya elle olusturmak, yerelde saklamak, yetkili ofis/IP makinesinde Doganium otomasyonunu calistirmak, sonuc durumunu panelde izlemek ve ileride teklif ozetini WhatsApp uzerinden musteriye dondurmektir.
 
-## Mimari
+## Mevcut Durum
 
-- Next.js dashboard: `app/page.tsx`
-- API routes: WhatsApp webhook, worker jobs, teklif mesajı gönderimi
-- Supabase PostgreSQL: talepler, sonuçlar, WhatsApp mesaj logları
-- Python worker: mock veya ileride PyWinAuto Doganium adapter
-- WhatsApp Cloud API: test numarası ve Phone Number ID ile mesaj alışverişi
+Bu proje local-first masaustu yazilimidir; bulut SaaS olarak tasarlanmamistir. Supabase, yerel masaustu is/panel akisi icin zorunlu degildir.
 
-Dashboard verisi auth olmayan MVP aşamasında server-side admin client ile okunur. Service role key client component içine girmez.
+Tamamlanan ana parcalar:
 
-## Kurulum
+- Next.js 16 yerel uygulama temeli.
+- Electron masaustu shell.
+- Doganium DevTools/CDP koprusu ve login inceleme akisi.
+- `.data/` altinda varsayilan JSON is deposu.
+- `/api/jobs` ve `/api/jobs/[id]/result` yerel store ile calisir.
+- `worker/mock_doganium_worker.py` JSON store islerini mock sonuc ile tamamlayabilir.
+- Dashboard yerel isleri okuyabilir.
+- Opsiyonel Prisma + SQLite store eklendi.
+- `LOCAL_STORE_DRIVER=prisma` ile Prisma store is olusturma/listeleme yapabilir.
 
-```powershell
-npm install
-Copy-Item .env.example .env.local
-```
+Henuz tamamlanmayan ana parcalar:
 
-`.env.local` içine şu değerleri doldurun:
+- Prisma store icin worker entegrasyonu.
+- Gercek Doganium teklif otomasyonu.
+- WhatsApp uzerinden uretim webhook akisi.
+- EXE paketleme ve uretim sertlestirme.
 
-```dotenv
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+## Ana Ozellikler
 
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+- Yerel trafik teklif isi olusturma.
+- JSON dosya tabanli varsayilan job queue.
+- Opsiyonel Prisma + SQLite job store.
+- Mock worker ile offline test akisi.
+- Dashboard uzerinden is durumlarini izleme.
+- Doganium desktop/DevTools otomasyonu icin hazirlik.
+- WhatsApp entegrasyonu icin yerel test ve gelecek webhook stratejisi.
 
-WORKER_API_KEY=
+## Yerel Gelistirme
 
-WHATSAPP_VERIFY_TOKEN=
-WHATSAPP_ACCESS_TOKEN=
-WHATSAPP_PHONE_NUMBER_ID=
-WHATSAPP_GRAPH_API_VERSION=v21.0
+Bagimlilikler zaten kurulu degilse proje paketlerini kurmak gerekir; bu belgede yeni paket kurulumu yapilmaz. Gelistirme komutlari PowerShell icindir.
 
-APP_BASE_URL=http://localhost:3000
-```
-
-`.env.local` Git'e eklenmemelidir.
-
-## Supabase
-
-`database/schema.sql` dosyasını Supabase SQL Editor içinde çalıştırın. Bu dosya:
-
-- `traffic_quote_requests`
-- `traffic_quote_results`
-- `whatsapp_messages`
-- gerekli indexler
-- service role RLS policy'leri
-
-oluşturur.
-
-## Dashboard
+Tip kontrol:
 
 ```powershell
-npm run dev
+npm.cmd run typecheck
 ```
 
-Dashboard: `http://localhost:3000`
-
-## Desktop MVP Kullanımı
-
-Windows üzerinde tek launcher ile Next.js dashboard ve worker EXE birlikte başlatılır. İlk çalıştırmadan önce worker EXE build edilmelidir.
+Build:
 
 ```powershell
-.\scripts\build-worker-exe.ps1
-.\scripts\start-desktop.ps1
+npm.cmd run build
 ```
 
-Durum kontrolü:
+Web dev server:
 
 ```powershell
-.\scripts\desktop-status.ps1
+npm.cmd run dev
 ```
 
-Çalışan launcher süreçlerini durdurma:
+Alternatif web script:
 
 ```powershell
-.\scripts\stop-desktop.ps1
+npm.cmd run dev:web
 ```
 
-`start-desktop.ps1`, `worker/dist/DoganiumWorker.exe` yoksa durur ve önce EXE build etmenizi ister. Launcher `.desktop/desktop-pids.json` içinde PID bilgilerini, `logs/` ve `worker/logs/` altında süreç loglarını tutar. Bu dosyalar Git'e eklenmez.
-
-## Worker Mock Geliştirme
-
-EXE yerine doğrudan Python ile geliştirme/test için:
+Electron masaustu gelistirme:
 
 ```powershell
-cd worker
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-cd ..
-.\scripts\setup-worker.ps1
-cd worker
-python main.py
+npm.cmd run desktop:dev
 ```
 
-İlk aşamada `mode` değeri `mock` kalmalıdır.
+## JSON Store Test Isi Olusturma
 
-## Doganium UI Inspect
-
-Gerçek Doganium otomasyonuna geçmeden önce açık pencere başlıklarını ve UI Automation tree çıktısını alın.
-
-Pencereleri listeleme:
+Once dev server acik olmalidir:
 
 ```powershell
-.\scripts\inspect-doganium.ps1
+npm.cmd run dev
 ```
 
-Başlığa göre Doganium penceresini dump etme:
+Ardindan test isi olustur:
 
 ```powershell
-.\scripts\inspect-doganium.ps1 -Title "Doganium"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\create-test-traffic-job.ps1"
 ```
 
-Tüm görünür top-level pencereleri dump etme:
+Bu script `/api/jobs` endpoint'ine test payload gonderir ve varsayilan JSON store icin `.data/traffic-jobs.json` dosyasini kullanir.
+
+## Mock Worker Calistirma
+
+Bekleyen ilk JSON isi tamamlamak icin:
 
 ```powershell
-.\scripts\inspect-doganium.ps1 -DumpAll
+python ".\worker\mock_doganium_worker.py"
 ```
 
-Çıktı console'a basılır ve `worker/inspect-output/doganium-ui-tree.txt` dosyasına yazılır. Password alanlarında value dump edilmez.
-
-## Coordinate Fallback
-
-Doganium ekranı CefSharp içinde çalıştığı için ilk gerçek otomasyon aşamasında coordinate/keyboard fallback kullanılacak. Doganium penceresi her smoke test ve worker çalışmasında `100,100` konumuna, `1200x750` boyutuna alınır. Koordinatlar bu sabit pencere yerleşimine göre ölçülür.
-
-Yönetici yetkisi zorunludur; VS Code veya PowerShell yönetici olarak çalışmalıdır.
-
-Pencere smoke testi:
+Belirli bir job ID icin:
 
 ```powershell
-.\scripts\smoke-doganium-window.ps1
+python ".\worker\mock_doganium_worker.py" --job-id "<JOB_ID>"
 ```
 
-Mouse koordinat ölçümü:
+Mock worker `.data/traffic-jobs.json` icindeki isi `running` yapar, mock teklif sonucunu `.data/traffic-results.json` dosyasina yazar ve isi `completed` durumuna alir.
+
+## Prisma SQLite Baslatma
+
+Yerel SQLite veritabanini hazirlamak icin:
 
 ```powershell
-.\scripts\coordinate-probe.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\init-prisma-local-db.ps1"
 ```
 
-Probe çıktısında `screenX`, `screenY`, `relativeX`, `relativeY` görünür. Login alanı, şifre alanı ve giriş butonu koordinatları `relativeX/relativeY` değerleriyle çıkarılmalıdır.
+Veritabani yolu:
 
-Login smoke testi:
+```text
+.data/doganium.sqlite
+```
+
+## Prisma Store ile Calisma
+
+JSON store varsayilandir. Prisma store kullanmak icin ayni PowerShell oturumunda:
 
 ```powershell
-.\scripts\login-doganium-smoke.ps1
+$env:LOCAL_STORE_DRIVER = "prisma"
+$env:DATABASE_URL = "file:../.data/doganium.sqlite"
+npm.cmd run dev
 ```
 
-## Test Talebi
+Prisma test scripti:
 
 ```powershell
-.\scripts\create-test-request.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\test-prisma-traffic-job.ps1"
 ```
 
-Ardından worker çalışıyorsa mock teklif sonucu üretip talebi `parsed` durumuna taşır.
+Not: Prisma ile is olusturma/listeleme hazirdir; mock worker henuz Prisma store uzerinden calisacak sekilde tamamlanmamistir.
 
-## WhatsApp Test
+## Dashboard Acma
 
-```powershell
-.\scripts\test-whatsapp-send.ps1 -To "905xxxxxxxxx" -Message "Doganium WhatsApp MVP test mesajı"
+Dev server calisirken:
+
+```text
+http://127.0.0.1:3000/dashboard
 ```
 
-Phone Number ID veya access token boşsa script açıklayıcı hata verir.
+Electron masaustu ekrani:
 
-## Kontrol Komutları
-
-```powershell
-npm run typecheck
-npm run build
-npm run check
+```text
+http://127.0.0.1:3000/desktop
 ```
 
-Python syntax kontrolü:
+## Onemli Klasorler
 
-```powershell
-cd worker
-python -m py_compile main.py api_client.py doganium_adapter.py models.py config.py
-```
+- `app/`: Next.js sayfalari ve API route'lari.
+- `electron/`: Electron ana surec ve preload dosyalari.
+- `lib/`: Store, parser, worker API ve yardimci moduller.
+- `worker/`: Python mock ve Doganium otomasyon hazirlik kodlari.
+- `prisma/`: Prisma schema ve migration dosyalari.
+- `scripts/`: Yerel test, smoke ve baslatma scriptleri.
+- `.data/`: Yerel job/result/SQLite verileri. Commit edilmez.
+- `.logs/` veya `logs/`: Yerel loglar. Commit edilmez.
+- `.desktop/`: Masaustu ayarlari. Commit edilmez.
 
-## Güvenlik Notları
+## Guvenlik
 
-- `.env.local`, `worker/settings.json`, service role key, WhatsApp token ve worker API key commit edilmez.
-- `SUPABASE_SERVICE_ROLE_KEY` sadece server-side dosyalarda kullanılır.
-- `NEXT_PUBLIC_*` sadece public/publishable değerler içindir.
-- TCKN, belge seri no ve doğum tarihi UI'da maskeli gösterilmelidir.
-- Kart bilgisi WhatsApp üzerinden istenmez.
-- Doganium kullanıcı adı ve şifresi yalnızca `worker/settings.json` içinde tutulur.
+`.env.local`, `.desktop/settings.json`, `.data/`, `.logs/` ve yerel SQLite veritabani commit edilmemelidir. TCKN, plaka, telefon, Doganium kimlik bilgileri ve teklif sonuclari kisisel/hassas veri sayilir. Doganium IP, MFA veya erisim kontrolleri atlatilmamalidir.
+
+## Dokumanlar
+
+- [Roadmap](docs/ROADMAP.md)
+- [Mimari](docs/ARCHITECTURE.md)
+- [Yerel Gelistirme](docs/LOCAL_DEVELOPMENT.md)
+- [Doganium Otomasyonu](docs/DOGANIUM_AUTOMATION.md)
+- [Job Queue](docs/JOB_QUEUE.md)
+- [WhatsApp Stratejisi](docs/WHATSAPP_STRATEGY.md)
+- [UI/UX Plani](docs/UI_UX_PLAN.md)
+- [Prisma SQLite](docs/PRISMA_SQLITE.md)
+- [Guvenlik Notlari](docs/SECURITY_NOTES.md)
+- [Test Plani](docs/TESTING.md)
+- [Changelog](docs/CHANGELOG.md)

@@ -1,50 +1,70 @@
-# Architecture
+# Mimari
 
-## Web Dashboard
+Doganium WhatsApp MVP local-first mimariye sahiptir. Uygulama, Ares Sigorta ofisinde veya Doganium'a erisim yetkisi olan Windows makinede calismak uzere tasarlanir. Core akis icin Supabase zorunlu degildir.
 
-`app/page.tsx`, son 50 trafik teklif talebini listeler. Auth olmayan MVP aşamasında veri okuma server-side admin helper üzerinden yapılır; service role key browser'a taşınmaz.
+## Metin Akis Diyagrami
 
-## API Routes
-
-- `GET/POST /api/whatsapp/webhook`: Meta doğrulama ve gelen mesaj işleme.
-- `GET /api/jobs`: Worker için sıradaki işi verir.
-- `POST/PATCH /api/jobs`: Worker sonucunu kaydeder.
-- `POST /api/messages`: Hazır teklifi müşteriye WhatsApp üzerinden gönderir.
-
-## Supabase
-
-Tablolar:
-
-- `traffic_quote_requests`
-- `traffic_quote_results`
-- `whatsapp_messages`
-
-RLS açık kalır. MVP için server route'ları service role ile çalışır.
-
-## Worker
-
-Python worker `worker/main.py` içinde sonsuz döngüyle iş çeker. `mock` modunda sahte teklif üretir. `pywinauto` modu selectorlar hazır olana kadar güvenli iskelet olarak kalır.
-
-## Doganium Adapter
-
-`MockDoganiumAdapter` uçtan uca test içindir. `PyWinAutoDoganiumAdapter` ileride Doganium login, EGM sorgu, trafik sorgu, rapor ve PDF indirme adımlarını taşıyacak.
-
-## WhatsApp Cloud API
-
-Webhook gelen mesajları alır. Eksik bilgi varsa cevap göndermeye çalışır. Phone Number ID veya token eksikse webhook crash olmaz; gönderim logu `send_failed` olabilir.
-
-## Data Flow
-
-```txt
-Customer WhatsApp
-  -> Meta Webhook
-  -> /api/whatsapp/webhook
-  -> traffic_quote_requests + whatsapp_messages
-  -> Python worker /api/jobs
-  -> Doganium adapter mock/pywinauto
-  -> traffic_quote_results
-  -> dashboard
-  -> /api/messages
-  -> WhatsApp Cloud API
-  -> customer
+```text
+Operator / WhatsApp test girdisi
+  -> Next.js local API (/api/jobs)
+  -> Yerel job store
+       -> Varsayilan: .data/traffic-jobs.json
+       -> Opsiyonel: .data/doganium.sqlite
+  -> Worker
+       -> Bugun: mock_doganium_worker.py
+       -> Gelecek: gercek Doganium automation worker
+  -> Sonuc store
+       -> JSON result veya SQLite result
+  -> Dashboard
+  -> Gelecek: WhatsApp teklif ozeti
 ```
+
+## Next.js Sorumluluklari
+
+- Yerel web arayuzunu sunar.
+- `/api/jobs` ile is olusturur ve listeler.
+- `/api/jobs/[id]/result` ile is sonucunu okur/yazar.
+- Dashboard icin yerel veriyi hazirlar.
+- Store secimini `LOCAL_STORE_DRIVER` ile yapar.
+
+## Electron Sorumluluklari
+
+- Next.js uygulamasini masaustu EXE deneyimine tasir.
+- Yerel desktop ayarlarini ve Doganium pencere/DevTools hazirliklarini yonetir.
+- Gelecekte paketleme, log yolu ve operator ayarlari icin ana kabuk gorevini ustlenir.
+
+## Python Worker Sorumluluklari
+
+- Bugun mock worker, JSON store'daki bekleyen isi alir ve sahte teklif sonucu yazar.
+- Doganium hazirlik scriptleri DevTools/CDP ile login ve pencere durumunu incelemek icindir.
+- Gelecekte gercek worker, Doganium desktop/web akisini calistirip teklif sonuclarini store'a yazacaktir.
+
+## JSON Store
+
+Varsayilan storage katmanidir.
+
+- Isler: `.data/traffic-jobs.json`
+- Sonuclar: `.data/traffic-results.json`
+- Avantaj: Basit, kurulumsuz, yerel test icin hizli.
+- Sinir: Event/log iliskileri ve eszamanli islemler icin uzun vadede zayif kalir.
+
+## Opsiyonel Prisma + SQLite
+
+Prisma store, SQLite veritabanini `.data/doganium.sqlite` altinda kullanir. `LOCAL_STORE_DRIVER=prisma` ile aktif olur.
+
+Mevcut durum:
+
+- Is olusturma calisir.
+- Is listeleme calisir.
+- Result ve event modeli hazirlanmistir.
+- Worker entegrasyonu henuz tamamlanmamistir.
+
+## Gelecek Gercek Doganium Worker
+
+Gercek worker su kosullara baglidir:
+
+- Doganium'a yetkili IP/ofis makinesinden erisim.
+- MFA veya manuel checkpoint akisi.
+- Doganium sayfa/pencere otomasyonu.
+- EGM/Trafik/PDF sonuc toplama.
+- Hata, retry ve audit log stratejisi.
