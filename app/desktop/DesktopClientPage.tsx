@@ -6,9 +6,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Cpu,
-  FolderOpen,
-  KeyRound,
-  PlayCircle,
   Save,
   ShieldAlert,
   Terminal,
@@ -224,6 +221,152 @@ export default function DesktopClientPage() {
         </div>
       }
     >
+      <Card className="ares-panel-strong sticky top-3 z-30 w-full max-w-full min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/25">
+        <CardHeader className="border-b border-[var(--ares-border)] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <CardTitle className="ares-title text-lg font-bold">Kalıcı komut paneli</CardTitle>
+              <CardDescription className="ares-muted mt-1">
+                Ana aksiyonlar durum ve çıktı panellerinden bağımsız render edilir; sonuçlar yalnızca aşağıdaki durum/log alanlarına yazılır.
+              </CardDescription>
+            </div>
+            <SoftBadge tone={busy ? "amber" : "neutral"}>{busy ? "İşlem sürüyor" : "Hazır"}</SoftBadge>
+          </div>
+        </CardHeader>
+        <CardContent className="w-full max-w-full min-w-0 p-4">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: "8px",
+              width: "100%",
+              maxWidth: "100%",
+            }}
+          >
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={selectExe}
+              data-testid="doganium-btn-select-exe"
+              style={{
+                width: "100%",
+                minWidth: 0,
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid rgba(16, 185, 129, 0.32)",
+                background: "linear-gradient(135deg, #047857, #10b981)",
+                color: "#ecfdf5",
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              Exe
+            </button>
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={saveSettings}
+              data-testid="doganium-btn-save"
+              style={{
+                width: "100%",
+                minWidth: 0,
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid rgba(16, 185, 129, 0.32)",
+                background: "linear-gradient(135deg, #047857, #10b981)",
+                color: "#ecfdf5",
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              Kaydet
+            </button>
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={testPath}
+              data-testid="doganium-btn-test-path"
+              style={{
+                width: "100%",
+                minWidth: 0,
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid rgba(148, 163, 184, 0.24)",
+                background: "rgba(15, 23, 42, 0.92)",
+                color: "#f8fafc",
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              Test
+            </button>
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={startDoganium}
+              data-testid="doganium-btn-start"
+              style={{
+                width: "100%",
+                minWidth: 0,
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid rgba(148, 163, 184, 0.24)",
+                background: "rgba(15, 23, 42, 0.92)",
+                color: "#f8fafc",
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              Başlat
+            </button>
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={checkDevTools}
+              data-testid="doganium-btn-devtools"
+              style={{
+                width: "100%",
+                minWidth: 0,
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid rgba(148, 163, 184, 0.24)",
+                background: "rgba(15, 23, 42, 0.92)",
+                color: "#f8fafc",
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              DevTools
+            </button>
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={startLogin}
+              data-testid="doganium-btn-login"
+              style={{
+                width: "100%",
+                minWidth: 0,
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid rgba(251, 191, 36, 0.28)",
+                background: "rgba(146, 64, 14, 0.78)",
+                color: "#fef3c7",
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              Login
+            </button>
+          </div>
+          <p className="ares-muted mt-2 text-xs">Komut paneli: native grid / 6 buton / 3 kolon</p>
+
+          <div className="mt-3 min-w-0 rounded-xl border border-[var(--ares-border)] bg-slate-950/35 px-3 py-2">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Son durum</p>
+            <p className="mt-1 break-words text-sm font-semibold text-slate-200">{status}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -302,7 +445,7 @@ export default function DesktopClientPage() {
               <label className="ares-muted block text-sm font-bold" htmlFor="doganium-exe">
                 Doganium.FormUI.exe
               </label>
-              <div className="mt-2 flex min-w-0 gap-2">
+              <div className="mt-2 min-w-0">
                 <input
                   id="doganium-exe"
                   value={exePath}
@@ -310,17 +453,8 @@ export default function DesktopClientPage() {
                   placeholder={
                     "Örnek: C:\\Program Files (x86)\\Doğanium Hızlı Teklif\\Doganium.FormUI.exe"
                   }
-                  className="ares-input min-w-0 flex-1 rounded-xl px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[var(--ares-green)] focus:ring-4 focus:ring-emerald-500/10"
+                  className="ares-input w-full min-w-0 rounded-xl px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[var(--ares-green)] focus:ring-4 focus:ring-emerald-500/10"
                 />
-                <Button
-                  type="button"
-                  disabled={actionsDisabled}
-                  onClick={selectExe}
-                  className="ares-button-primary h-auto shrink-0 rounded-xl px-4 hover:opacity-90"
-                >
-                  <FolderOpen className="mr-2 size-4" />
-                  Seç
-                </Button>
               </div>
             </div>
 
@@ -352,29 +486,6 @@ export default function DesktopClientPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 xl:grid-cols-3">
-              <ActionGroup title="Ayarlar">
-                <ActionButton disabled={actionsDisabled} onClick={saveSettings} tone="green" icon={Save}>
-                  Kaydet
-                </ActionButton>
-              </ActionGroup>
-              <ActionGroup title="Bağlantı Testleri">
-                <ActionButton disabled={actionsDisabled} onClick={testPath} tone="navy" icon={CheckCircle2}>
-                  Yolu test et
-                </ActionButton>
-                <ActionButton disabled={actionsDisabled} onClick={checkDevTools} tone="navy" icon={Wifi}>
-                  DevTools kontrol
-                </ActionButton>
-              </ActionGroup>
-              <ActionGroup title="Otomasyon">
-                <ActionButton disabled={actionsDisabled} onClick={startDoganium} tone="navy" icon={PlayCircle}>
-                  Doganium'u başlat
-                </ActionButton>
-                <ActionButton disabled={actionsDisabled} onClick={startLogin} tone="amber" icon={KeyRound}>
-                  Login Başlat
-                </ActionButton>
-              </ActionGroup>
-            </div>
           </CardContent>
         </Card>
 
@@ -463,47 +574,6 @@ function TechnicalStatusCard({
         </CardContent>
       </Card>
     </motion.div>
-  );
-}
-
-function ActionGroup({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="ares-surface rounded-2xl p-3">
-      <p className="ares-muted mb-2 text-xs font-bold uppercase">{title}</p>
-      <div className="grid gap-2">{children}</div>
-    </div>
-  );
-}
-
-function ActionButton({
-  disabled,
-  onClick,
-  tone,
-  icon: Icon,
-  children,
-}: {
-  disabled: boolean;
-  onClick: () => void;
-  tone: "green" | "navy" | "amber";
-  icon: ComponentType<{ className?: string }>;
-  children: ReactNode;
-}) {
-  const toneClass = {
-    green: "ares-button-primary hover:opacity-90",
-    navy: "bg-white/[0.08] text-white hover:bg-white/[0.12] border border-[var(--ares-border)]",
-    amber: "bg-amber-500/16 text-amber-100 hover:bg-amber-500/22 border border-amber-400/20",
-  }[tone];
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`inline-flex h-11 items-center justify-center rounded-xl px-3 text-sm font-bold shadow-md transition disabled:cursor-not-allowed disabled:opacity-55 ${toneClass}`}
-    >
-      <Icon className="mr-2 size-4" />
-      {children}
-    </button>
   );
 }
 
