@@ -224,7 +224,6 @@ function OperationFlow({ summary }: { summary: Summary }) {
       </div>
 
       <div className="relative grid gap-2.5 lg:grid-cols-5">
-        <div className="absolute left-5 right-5 top-1/2 hidden h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-white/12 to-transparent lg:block" />
         {stages.map((stage, index) => {
           const Icon = stage.icon;
           return (
@@ -263,7 +262,6 @@ function OperationFlow({ summary }: { summary: Summary }) {
                   {stage.processing ? "İşleniyor" : stage.active ? "Aktif" : "Beklemede"}
                 </p>
               </div>
-              {index < stages.length - 1 ? <div className="absolute -right-1 top-4 hidden h-[84px] w-px bg-white/[0.08] lg:block" /> : null}
             </div>
           );
         })}
