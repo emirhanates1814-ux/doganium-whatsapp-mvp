@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model TrafficJob {
+  id             String             @id
+  customerPhone  String
+  customerName   String?
+  tckn           String?
+  plate          String?
+  documentSerial String?
+  birthDate      String?
+  rawMessage     String?
+  source         String
+  status         String
+  errorMessage   String?
+  createdAt      DateTime
+  updatedAt      DateTime
+  result         TrafficJobResult?
+  events         TrafficJobEvent[]
+
+  @@index([status])
+  @@index([customerPhone])
+  @@index([plate])
+  @@index([createdAt])
+}
+
+model TrafficJobResult {
+  id              String     @id
+  jobId           String     @unique
+  quotesJson      String
+  cheapestPremium Float?
+  highestPremium  Float?
+  summary         String?
+  createdAt       DateTime
+  updatedAt       DateTime
+  job             TrafficJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+model TrafficJobEvent {
+  id           String     @id
+  jobId        String
+  type         String
+  message      String?
+  metadataJson String?
+  createdAt    DateTime
+  job          TrafficJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}

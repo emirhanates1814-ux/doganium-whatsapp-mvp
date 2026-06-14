@@ -12,6 +12,9 @@ build
 
 .data/
 .logs/
+prisma/dev.db
+*.sqlite
+*.sqlite-journal
 .desktop/
 *.pid
 logs/

@@ -1,14 +1,10 @@
-import {
-  createTrafficJob as createLocalTrafficJob,
-  getTrafficJob as getLocalTrafficJob,
-  getTrafficJobResult as getLocalTrafficJobResult,
-  listTrafficJobs as listLocalTrafficJobs,
-  saveTrafficJobResult as saveLocalTrafficJobResult,
-  updateTrafficJobStatus as updateLocalTrafficJobStatus,
-  type CreateLocalTrafficJobInput,
-  type ListLocalTrafficJobsFilters,
-  type LocalTrafficJob,
-  type LocalTrafficJobResult,
+import * as jsonStore from "./local-traffic-store";
+import * as prismaStore from "./prisma-traffic-store";
+import type {
+  CreateLocalTrafficJobInput,
+  ListLocalTrafficJobsFilters,
+  LocalTrafficJob,
+  LocalTrafficJobResult,
 } from "./local-traffic-store";
 import type {
   LegacyTrafficJobStatus,
@@ -62,6 +58,19 @@ export type DashboardData = {
   totalCount: number;
 };
 
+type TrafficStore = {
+  createTrafficJob: typeof jsonStore.createTrafficJob;
+  listTrafficJobs: typeof jsonStore.listTrafficJobs;
+  getTrafficJob: typeof jsonStore.getTrafficJob;
+  updateTrafficJobStatus: typeof jsonStore.updateTrafficJobStatus;
+  saveTrafficJobResult: typeof jsonStore.saveTrafficJobResult;
+  getTrafficJobResult: typeof jsonStore.getTrafficJobResult;
+};
+
+function getTrafficStore(): TrafficStore {
+  return process.env.LOCAL_STORE_DRIVER === "prisma" ? prismaStore : jsonStore;
+}
+
 const trafficRequestStatuses = [
   "pending",
   "running",
@@ -111,7 +120,7 @@ export async function createTrafficJob(
   input: CreateTrafficJobInput,
 ): Promise<ServiceResult<TrafficJobRow>> {
   try {
-    const data = await createLocalTrafficJob(input);
+    const data = await getTrafficStore().createTrafficJob(input);
     return { ok: true, data };
   } catch (error) {
     return { ok: false, error: "Traffic job could not be created.", details: error };
@@ -122,7 +131,7 @@ export async function listTrafficJobs(
   filters: ListTrafficJobsFilters = {},
 ): Promise<ServiceResult<TrafficJobRow[]>> {
   try {
-    const data = await listLocalTrafficJobs(filters);
+    const data = await getTrafficStore().listTrafficJobs(filters);
     return { ok: true, data };
   } catch (error) {
     return { ok: false, error: "Traffic jobs could not be listed.", details: error };
@@ -131,7 +140,7 @@ export async function listTrafficJobs(
 
 export async function getTrafficJob(id: string): Promise<ServiceResult<TrafficJobRow | null>> {
   try {
-    const data = await getLocalTrafficJob(id);
+    const data = await getTrafficStore().getTrafficJob(id);
     return { ok: true, data };
   } catch (error) {
     return { ok: false, error: "Traffic job could not be loaded.", details: error };
@@ -144,7 +153,7 @@ export async function updateTrafficJobStatus(
   extra: { errorMessage?: string | null } = {},
 ): Promise<ServiceResult<TrafficJobRow>> {
   try {
-    const data = await updateLocalTrafficJobStatus(id, status, extra);
+    const data = await getTrafficStore().updateTrafficJobStatus(id, status, extra);
 
     if (!data) {
       return { ok: false, error: "Traffic job not found." };
@@ -161,10 +170,11 @@ export async function saveTrafficJobResult(
   result: TrafficJobResultPayload,
 ): Promise<ServiceResult<TrafficJobResultRow>> {
   try {
-    const job = await getLocalTrafficJob(id);
+    const store = getTrafficStore();
+    const job = await store.getTrafficJob(id);
     if (!job) return { ok: false, error: "Traffic job not found." };
 
-    const data = await saveLocalTrafficJobResult(id, result);
+    const data = await store.saveTrafficJobResult(id, result);
     return { ok: true, data };
   } catch (error) {
     return { ok: false, error: "Traffic job result could not be saved.", details: error };
@@ -175,7 +185,7 @@ export async function getTrafficJobResult(
   id: string,
 ): Promise<ServiceResult<TrafficJobResultRow | null>> {
   try {
-    const data = await getLocalTrafficJobResult(id);
+    const data = await getTrafficStore().getTrafficJobResult(id);
     return { ok: true, data };
   } catch (error) {
     return { ok: false, error: "Traffic job result could not be loaded.", details: error };
@@ -218,7 +228,7 @@ export async function recordWhatsAppMessage(_input?: {
 }
 
 export async function getNextJobForWorker(): Promise<WorkerJob | null> {
-  const listed = await listLocalTrafficJobs({ status: "pending", limit: 1 });
+  const listed = await getTrafficStore().listTrafficJobs({ status: "pending", limit: 1 });
   const job = listed.sort((left, right) => left.createdAt.localeCompare(right.createdAt))[0];
 
   if (!job?.tckn || !job.plate || !job.documentSerial || !job.birthDate) return null;
@@ -268,7 +278,7 @@ export async function markJobFailed(id: string, errorMessage: string) {
 }
 
 export async function listDashboardData(): Promise<DashboardData> {
-  const jobs = await listLocalTrafficJobs({ limit: 50 });
+  const jobs = await getTrafficStore().listTrafficJobs({ limit: 50 });
   const requests = jobs.map<DashboardRequestRow>((job) => ({
     id: job.id,
     customer_phone: job.customerPhone,
@@ -285,7 +295,7 @@ export async function listDashboardData(): Promise<DashboardData> {
 }
 
 export async function listRecentJobs() {
-  return listLocalTrafficJobs({ limit: 50 });
+  return getTrafficStore().listTrafficJobs({ limit: 50 });
 }
 
 function mapLocalStatusToLegacy(status: TrafficJobRow["status"]): LegacyTrafficJobStatus {
