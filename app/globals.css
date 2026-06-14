@@ -6,44 +6,73 @@
 
 :root {
   color-scheme: light;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --ares-green: #0f7a4f;
+  --ares-teal: #14b8a6;
+  --ares-green-strong: #0b5f3f;
+  --ares-green-soft: #e8f6ef;
+  --ares-navy: #102033;
+  --ares-navy-soft: #172c45;
+  --ares-deep: #071521;
+  --ares-deep-2: #081724;
+  --ares-panel: #0b1724;
+  --ares-panel-2: #102033;
+  --ares-panel-3: #142b42;
+  --ares-app-bg: #071521;
+  --ares-border: rgba(255, 255, 255, 0.1);
+  --ares-border-strong: rgba(52, 211, 153, 0.18);
+  --ares-text: #f8fafc;
+  --ares-text-muted: #94a3b8;
+  --ares-text-soft: #cbd5e1;
+  --ares-shell-bg: radial-gradient(circle at 20% 0%, rgba(24, 166, 111, 0.22), transparent 32%), radial-gradient(circle at 85% 20%, rgba(20, 184, 166, 0.14), transparent 30%), linear-gradient(135deg, #071521 0%, #102033 48%, #081622 100%);
+  --ares-sidebar-bg: linear-gradient(180deg, #071521 0%, #102033 44%, #07131f 100%);
+  --ares-panel-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+  --ares-panel-bg-strong: linear-gradient(180deg, rgba(16, 32, 51, 0.94), rgba(7, 21, 33, 0.92));
+  --ares-accent-bg: linear-gradient(135deg, #18a66f, #0f7a4f);
+  --ares-success: #14804a;
+  --ares-success-soft: #e7f6ee;
+  --ares-warning: #b7791f;
+  --ares-warning-soft: #fff4db;
+  --ares-danger: #c2413a;
+  --ares-danger-soft: #fdecea;
+  --background: var(--ares-app-bg);
+  --foreground: var(--ares-text);
+  --card: var(--ares-panel);
+  --card-foreground: var(--ares-text);
+  --popover: var(--ares-panel);
+  --popover-foreground: var(--ares-text);
+  --primary: var(--ares-green);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --secondary: var(--ares-panel-2);
+  --secondary-foreground: var(--ares-text);
+  --muted: var(--ares-panel-2);
+  --muted-foreground: var(--ares-text-muted);
+  --accent: rgba(20, 184, 166, 0.14);
+  --accent-foreground: #a7f3d0;
+  --destructive: var(--ares-danger);
+  --border: var(--ares-border);
+  --input: var(--ares-border);
+  --ring: var(--ares-green);
+  --chart-1: var(--ares-green);
+  --chart-2: var(--ares-navy);
+  --chart-3: var(--ares-warning);
+  --chart-4: var(--ares-success);
+  --chart-5: var(--ares-danger);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: var(--ares-navy);
+  --sidebar-foreground: #e8f6ef;
+  --sidebar-primary: var(--ares-green);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: var(--ares-navy-soft);
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: rgba(232, 246, 239, 0.14);
+  --sidebar-ring: var(--ares-green);
 }
 
 body {
   margin: 0;
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--ares-shell-bg);
+  color: var(--ares-text);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
 @theme inline {
@@ -132,5 +161,61 @@ body {
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  .ares-shell {
+    background: var(--ares-shell-bg);
+    color: var(--ares-text);
+  }
+
+  .ares-sidebar {
+    background: var(--ares-sidebar-bg);
+    border-color: var(--ares-border);
+  }
+
+  .ares-panel {
+    background: var(--ares-panel-bg);
+    border: 1px solid var(--ares-border);
+    color: var(--ares-text);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+    backdrop-filter: blur(14px);
+  }
+
+  .ares-panel-strong {
+    background: var(--ares-panel-bg-strong);
+    border: 1px solid var(--ares-border);
+    color: var(--ares-text);
+  }
+
+  .ares-surface {
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid var(--ares-border);
+    color: var(--ares-text);
+  }
+
+  .ares-input {
+    background: rgba(7, 21, 33, 0.78);
+    border: 1px solid var(--ares-border);
+    color: var(--ares-text);
+  }
+
+  .ares-input::placeholder {
+    color: rgba(148, 163, 184, 0.76);
+  }
+
+  .ares-title {
+    color: var(--ares-text);
+    letter-spacing: 0;
+  }
+
+  .ares-muted {
+    color: var(--ares-text-muted);
+  }
+
+  .ares-button-primary {
+    background: var(--ares-accent-bg);
+    color: white;
   }
 }

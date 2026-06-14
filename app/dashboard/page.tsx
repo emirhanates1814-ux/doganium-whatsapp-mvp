@@ -14,16 +14,16 @@ export default async function DashboardPage() {
 
   if (!result.ok) {
     return (
-      <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-        <Card className="mx-auto max-w-3xl rounded-lg border-red-200 bg-white">
+      <main className="ares-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+        <Card className="ares-panel mx-auto max-w-3xl rounded-3xl">
           <CardHeader>
-            <p className="text-sm font-semibold text-red-700">Veriler yüklenemedi.</p>
-            <CardTitle className="text-xl font-bold text-slate-950">
+            <p className="text-sm font-semibold text-red-300">Veriler yüklenemedi.</p>
+            <CardTitle className="ares-title text-xl font-bold">
               Yerel trafik job kayıtları okunamadı
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-6 text-slate-600">
+            <p className="ares-muted text-sm leading-6">
               `.data` klasörü erişimini, yerel store dosyalarını ve ortam değişkenlerini kontrol
               edin.
             </p>

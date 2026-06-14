@@ -1,7 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { CSSProperties } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { motion } from "motion/react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Cpu,
+  FolderOpen,
+  KeyRound,
+  PlayCircle,
+  Save,
+  ShieldAlert,
+  Terminal,
+  Wifi,
+  Wrench,
+} from "lucide-react";
+import AppShell from "@/components/AppShell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface DesktopSettings {
   doganiumExePath?: string;
@@ -36,10 +60,10 @@ declare global {
   }
 }
 
+const easeOut = [0.16, 1, 0.3, 1] as const;
+
 function maskSensitive(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(maskSensitive);
-  }
+  if (Array.isArray(value)) return value.map(maskSensitive);
 
   if (value && typeof value === "object") {
     return Object.fromEntries(
@@ -67,18 +91,28 @@ export default function DesktopClientPage() {
   const [busy, setBusy] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [hasDesktopApi, setHasDesktopApi] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
 
-  async function runAction<T>(label: string, action: (api: DesktopApi) => Promise<DesktopResult<T>>, onSuccess?: (result: DesktopResult<T>) => void) {
+  async function runAction<T>(
+    label: string,
+    action: (api: DesktopApi) => Promise<DesktopResult<T>>,
+    onSuccess?: (result: DesktopResult<T>) => void,
+  ) {
     const api = window.desktopApi;
 
     if (!api) {
-      const result = { ok: false, error: "DESKTOP_PRELOAD_API_MISSING", details: "window.desktopApi bulunamadı." };
+      const result = {
+        ok: false,
+        error: "DESKTOP_PRELOAD_API_MISSING",
+        details: "window.desktopApi bulunamadı.",
+      };
       setLastResult(result);
       setStatus("Electron preload API bulunamadı. Bu sayfayı Electron içinde açın.");
       return;
     }
 
     setBusy(true);
+    setSettingsSaved(false);
     setStatus(`${label} çalışıyor...`);
 
     try {
@@ -128,9 +162,22 @@ export default function DesktopClientPage() {
   }, []);
 
   async function saveSettings() {
-    await runAction("Ayarları kaydet", (api) => api.writeSettings({ doganiumExePath: exePath, doganiumUsername, doganiumPassword, devtoolsPort: 9222 }), (result) => {
-      if (result.data) setSettings(result.data);
-    });
+    await runAction(
+      "Ayarları kaydet",
+      (api) =>
+        api.writeSettings({
+          doganiumExePath: exePath,
+          doganiumUsername,
+          doganiumPassword,
+          devtoolsPort: 9222,
+        }),
+      (result) => {
+        if (result.data) {
+          setSettings(result.data);
+          setSettingsSaved(true);
+        }
+      },
+    );
   }
 
   async function selectExe() {
@@ -147,7 +194,7 @@ export default function DesktopClientPage() {
   }
 
   async function startDoganium() {
-    await runAction("Doganium’u başlat", (api) => api.startDoganium(exePath));
+    await runAction("Doganium'u başlat", (api) => api.startDoganium(exePath));
   }
 
   async function checkDevTools() {
@@ -159,120 +206,323 @@ export default function DesktopClientPage() {
   }
 
   const actionsDisabled = !mounted || !hasDesktopApi || busy;
-  const preloadBadgeText = !mounted ? "Preload kontrol ediliyor" : hasDesktopApi ? "Preload aktif" : "Preload yok";
-  const preloadBadgeBackground = !mounted ? "#e2e8f0" : hasDesktopApi ? "#dcfce7" : "#fee2e2";
-  const preloadBadgeColor = !mounted ? "#334155" : hasDesktopApi ? "#166534" : "#991b1b";
+  const preloadTone = !mounted ? "neutral" : hasDesktopApi ? "green" : "red";
+  const preloadText = !mounted ? "Kontrol ediliyor" : hasDesktopApi ? "Aktif" : "Yok";
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f8fafc", color: "#0f172a", padding: 32, fontFamily: "Arial, sans-serif" }}>
-      <section style={{ maxWidth: 1180, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 24 }}>
-          <div>
-            <p style={{ margin: 0, color: "#64748b", fontSize: 14 }}>Desktop MVP</p>
-            <h1 style={{ margin: "6px 0 8px", fontSize: 34 }}>Doganium WhatsApp Otomasyon</h1>
-            <p style={{ margin: 0, color: "#475569", maxWidth: 780 }}>
-              Electron, Doganium başlatma ve DevTools/Login kontrol paneli. Butonlara basınca sağdaki durum ve alttaki JSON çıktısı güncellenmelidir.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ ...pillStyle, background: preloadBadgeBackground, color: preloadBadgeColor }}>
-              {preloadBadgeText}
-            </span>
-            <a href="/dashboard" style={{ padding: "12px 16px", borderRadius: 8, background: "#0f172a", color: "white", textDecoration: "none", fontWeight: 700 }}>
-              Dashboard
-            </a>
-          </div>
+    <AppShell
+      active="desktop"
+      title="Doganium Teknik Paneli"
+      description="Kurulum, debug, DevTools ve login hazırlık kontrolleri. Günlük teklif operasyonu için Operasyon Paneli kullanılmalıdır."
+      badge="Teknik kontrol ekranı"
+      actions={
+        <div className="flex items-center gap-2">
+          <SoftBadge tone={preloadTone}>Preload {preloadText}</SoftBadge>
+          <Button asChild variant="outline" size="lg" className="h-9 rounded-xl border-[var(--ares-border)] bg-white/[0.08] px-3 text-sm text-white hover:bg-white/[0.12] hover:text-white">
+            <a href="/dashboard">Operasyon Paneli</a>
+          </Button>
         </div>
+      }
+    >
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: easeOut }}
+        className="grid min-w-0 grid-cols-12 gap-4"
+      >
+        <Card className="ares-panel-strong relative col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/25 xl:col-span-8">
+          <div className="absolute -right-8 -top-12 h-44 w-44 rounded-full bg-emerald-300/12 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-emerald-300/35 to-transparent" />
+          <CardHeader className="relative gap-4 p-5">
+            <div className="flex flex-wrap gap-2">
+              <Badge className="border-white/15 bg-white/[0.08] text-white hover:bg-white/[0.12]">
+                <Wrench className="mr-1 size-3.5" />
+                Setup / Debug
+              </Badge>
+              <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/14">
+                <Terminal className="mr-1 size-3.5" />
+                Yerel kontrol
+              </Badge>
+            </div>
+            <CardTitle className="ares-title mt-4 text-3xl font-black lg:text-4xl">
+              Doganium otomasyon hazırlığı
+            </CardTitle>
+            <CardDescription className="ares-muted mt-2 max-w-3xl text-sm leading-6">
+              EXE yolu, Electron preload, DevTools portu ve login başlangıcı burada yönetilir.
+              Bu ekran günlük üretim akışı değil, teknik hazırlık ve debug alanıdır.
+            </CardDescription>
+          </CardHeader>
+        </Card>
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)", gap: 18 }}>
-          <div style={cardStyle}>
-            <h2 style={{ marginTop: 0 }}>Doganium kontrol</h2>
-            <label style={{ display: "block", color: "#475569", fontSize: 14, marginBottom: 8 }}>Doganium.FormUI.exe</label>
-            <input
-              value={exePath}
-              onChange={(event) => setExePath(event.target.value)}
-              placeholder="Örnek: C:\\Program Files (x86)\\Doğanium Hızlı Teklif\\Doganium.FormUI.exe"
-              style={{ width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 14 }}
-            />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
+        <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/15 xl:col-span-4">
+          <CardHeader className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-amber-300">
+                <ShieldAlert className="size-5" />
+              </div>
               <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 14, marginBottom: 8 }}>Doganium kullanıcı adı</label>
+                <CardTitle className="text-base font-bold text-amber-100">
+                  Yetkili IP / ofis erişimi gerekli
+                </CardTitle>
+                <CardDescription className="mt-1 text-sm leading-6 text-amber-200/80">
+                  Gerçek Doganium login ve otomasyon adımları yetkili ortam olmadan ilerletilmemelidir.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+      </motion.section>
+
+      <section className="grid min-w-0 grid-cols-12 gap-3">
+        <TechnicalStatusCard label="Preload" value={preloadText} tone={preloadTone} icon={Cpu} index={0} />
+        <TechnicalStatusCard label="DevTools" value="Port 9222" tone="blue" icon={Wifi} index={1} />
+        <TechnicalStatusCard label="IP Durumu" value="Erişim bekleniyor" tone="amber" icon={AlertTriangle} index={2} />
+        <TechnicalStatusCard
+          label="Ayarlar"
+          value={settingsSaved ? "Kaydedildi" : settings.doganiumExePath ? "Yüklendi" : "Eksik"}
+          tone={settingsSaved ? "green" : settings.doganiumExePath ? "neutral" : "amber"}
+          icon={settingsSaved ? CheckCircle2 : Save}
+          index={3}
+        />
+      </section>
+
+      <section className="grid min-w-0 grid-cols-12 gap-4">
+        <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl xl:col-span-8">
+          <CardHeader className="border-b border-[var(--ares-border)] p-5">
+            <CardTitle className="ares-title text-lg font-bold">
+              Kurulum ve bağlantı ayarları
+            </CardTitle>
+            <CardDescription className="ares-muted">
+              Doganium path ve login bilgileri yerelde saklanır. Secret değerleri repoya yazmayın.
+            </CardDescription>
+          </CardHeader>
+          <Separator />
+          <CardContent className="space-y-4 p-5">
+            <div className="ares-surface rounded-2xl p-4">
+              <label className="ares-muted block text-sm font-bold" htmlFor="doganium-exe">
+                Doganium.FormUI.exe
+              </label>
+              <div className="mt-2 flex min-w-0 gap-2">
                 <input
+                  id="doganium-exe"
+                  value={exePath}
+                  onChange={(event) => setExePath(event.target.value)}
+                  placeholder={
+                    "Örnek: C:\\Program Files (x86)\\Doğanium Hızlı Teklif\\Doganium.FormUI.exe"
+                  }
+                  className="ares-input min-w-0 flex-1 rounded-xl px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[var(--ares-green)] focus:ring-4 focus:ring-emerald-500/10"
+                />
+                <Button
+                  type="button"
+                  disabled={actionsDisabled}
+                  onClick={selectExe}
+                  className="ares-button-primary h-auto shrink-0 rounded-xl px-4 hover:opacity-90"
+                >
+                  <FolderOpen className="mr-2 size-4" />
+                  Seç
+                </Button>
+              </div>
+            </div>
+
+            <div className="ares-surface grid min-w-0 gap-4 rounded-2xl p-4 md:grid-cols-2">
+              <div className="min-w-0">
+                <label className="ares-muted block text-sm font-bold" htmlFor="doganium-username">
+                  Doganium kullanıcı adı
+                </label>
+                <input
+                  id="doganium-username"
                   value={doganiumUsername}
                   onChange={(event) => setDoganiumUsername(event.target.value)}
                   autoComplete="username"
-                  style={{ width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 14 }}
+                  className="ares-input mt-2 w-full rounded-xl px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[var(--ares-green)] focus:ring-4 focus:ring-emerald-500/10"
                 />
               </div>
-              <div>
-                <label style={{ display: "block", color: "#475569", fontSize: 14, marginBottom: 8 }}>Doganium şifre</label>
+              <div className="min-w-0">
+                <label className="ares-muted block text-sm font-bold" htmlFor="doganium-password">
+                  Doganium şifre
+                </label>
                 <input
+                  id="doganium-password"
                   value={doganiumPassword}
                   onChange={(event) => setDoganiumPassword(event.target.value)}
                   type="password"
                   autoComplete="current-password"
-                  style={{ width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 14 }}
+                  className="ares-input mt-2 w-full rounded-xl px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[var(--ares-green)] focus:ring-4 focus:ring-emerald-500/10"
                 />
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-              <button disabled={actionsDisabled} onClick={selectExe} style={buttonStyle("#334155", "white", actionsDisabled)}>Exe seç</button>
-              <button disabled={actionsDisabled} onClick={saveSettings} style={buttonStyle("#0f766e", "white", actionsDisabled)}>Kaydet</button>
-              <button disabled={actionsDisabled} onClick={testPath} style={buttonStyle("#2563eb", "white", actionsDisabled)}>Yolu test et</button>
-              <button disabled={actionsDisabled} onClick={startDoganium} style={buttonStyle("#111827", "white", actionsDisabled)}>Doganium’u başlat</button>
-              <button disabled={actionsDisabled} onClick={checkDevTools} style={buttonStyle("#7c3aed", "white", actionsDisabled)}>DevTools kontrol</button>
-              <button disabled={actionsDisabled} onClick={startLogin} style={buttonStyle("#b45309", "white", actionsDisabled)}>Login Başlat</button>
-            </div>
-          </div>
 
-          <div style={{ background: "#0f172a", color: "white", borderRadius: 8, padding: 24, boxShadow: "0 12px 30px rgba(15,23,42,0.16)" }}>
-            <p style={{ color: "#94a3b8", marginTop: 0 }}>Durum</p>
-            <h2 style={{ marginTop: 0 }}>{status}</h2>
-            <p style={{ color: "#cbd5e1", lineHeight: 1.6 }}>
-              İlk sıra: Yolu test et, Doganium’u başlat, DevTools kontrol, Login Başlat.
-            </p>
-            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 8, padding: 14, fontSize: 13 }}>
-              <div><strong>Kaydedilen yol:</strong></div>
-              <div style={{ wordBreak: "break-all", color: "#e2e8f0", marginTop: 6 }}>{settings.doganiumExePath || "Henüz yok"}</div>
+            <div className="grid gap-3 xl:grid-cols-3">
+              <ActionGroup title="Ayarlar">
+                <ActionButton disabled={actionsDisabled} onClick={saveSettings} tone="green" icon={Save}>
+                  Kaydet
+                </ActionButton>
+              </ActionGroup>
+              <ActionGroup title="Bağlantı Testleri">
+                <ActionButton disabled={actionsDisabled} onClick={testPath} tone="navy" icon={CheckCircle2}>
+                  Yolu test et
+                </ActionButton>
+                <ActionButton disabled={actionsDisabled} onClick={checkDevTools} tone="navy" icon={Wifi}>
+                  DevTools kontrol
+                </ActionButton>
+              </ActionGroup>
+              <ActionGroup title="Otomasyon">
+                <ActionButton disabled={actionsDisabled} onClick={startDoganium} tone="navy" icon={PlayCircle}>
+                  Doganium'u başlat
+                </ActionButton>
+                <ActionButton disabled={actionsDisabled} onClick={startLogin} tone="amber" icon={KeyRound}>
+                  Login Başlat
+                </ActionButton>
+              </ActionGroup>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div style={{ marginTop: 18, background: "white", border: "1px solid #e2e8f0", borderRadius: 8, padding: 20 }}>
-          <h3 style={{ marginTop: 0 }}>Son işlem çıktısı</h3>
-          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", background: "#f1f5f9", borderRadius: 8, padding: 16, overflow: "auto", maxHeight: 420 }}>
+        <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl xl:col-span-4">
+          <CardHeader className="border-b border-[var(--ares-border)] p-5">
+            <CardTitle className="ares-title text-lg font-bold">Teknik durum</CardTitle>
+            <CardDescription className="ares-muted">Son aksiyon, kayıtlı yol ve güvenli çalışma notları.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 p-5">
+            <div className="ares-panel-strong rounded-2xl p-5 shadow-lg shadow-black/20">
+              <p className="text-sm font-semibold text-emerald-100/70">Son durum</p>
+              <h2 className="mt-2 text-2xl font-black">{status}</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                Yetkili IP/ofis erişimi yoksa gerçek login ve teklif otomasyonu bekletilmelidir.
+              </p>
+            </div>
+
+            <div className="ares-surface rounded-2xl p-4 text-sm">
+              <p className="font-bold text-slate-100">Kaydedilen yol</p>
+              <p className="mt-2 break-all text-slate-400">{settings.doganiumExePath || "Henüz yok"}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <Card className="ares-panel min-w-0 overflow-hidden rounded-3xl">
+        <CardHeader className="border-b border-[var(--ares-border)] p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="ares-title text-lg font-bold">Çıktı / Log</CardTitle>
+              <CardDescription className="ares-muted">Son teknik aksiyonun maskelenmiş JSON çıktısı.</CardDescription>
+            </div>
+            <Badge variant="outline" className="border-[var(--ares-border)] bg-white/5 text-slate-100">
+              <Terminal className="mr-1 size-3.5" />
+              Terminal
+            </Badge>
+          </div>
+        </CardHeader>
+        <Separator />
+        <CardContent className="p-5">
+          <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-[var(--ares-border)] bg-[var(--ares-deep)] p-5 text-xs leading-6 text-emerald-50 shadow-inner">
             {formatJson(lastResult)}
           </pre>
-        </div>
-      </section>
-    </main>
+        </CardContent>
+      </Card>
+    </AppShell>
   );
 }
 
-const cardStyle: CSSProperties = {
-  background: "white",
-  border: "1px solid #e2e8f0",
-  borderRadius: 8,
-  padding: 24,
-  boxShadow: "0 12px 30px rgba(15,23,42,0.06)",
-};
+function TechnicalStatusCard({
+  label,
+  value,
+  tone,
+  icon: Icon,
+  index,
+}: {
+  label: string;
+  value: string;
+  tone: "neutral" | "green" | "red" | "amber" | "blue";
+  icon: ComponentType<{ className?: string }>;
+  index: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.17, delay: 0.03 + index * 0.02, ease: easeOut }}
+      className="col-span-6 min-w-0 md:col-span-3"
+    >
+      <Card className="ares-panel rounded-2xl shadow-lg shadow-black/15">
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="ares-muted truncate text-sm font-semibold">{label}</p>
+              <div className="mt-3">
+                <SoftBadge tone={tone}>{value}</SoftBadge>
+              </div>
+            </div>
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[var(--ares-border-strong)] bg-emerald-400/10 text-emerald-300">
+              <Icon className="size-5" />
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
 
-const pillStyle: CSSProperties = {
-  padding: "8px 10px",
-  borderRadius: 999,
-  fontSize: 12,
-  fontWeight: 800,
-};
+function ActionGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="ares-surface rounded-2xl p-3">
+      <p className="ares-muted mb-2 text-xs font-bold uppercase">{title}</p>
+      <div className="grid gap-2">{children}</div>
+    </div>
+  );
+}
 
-function buttonStyle(background: string, color: string, disabled: boolean): CSSProperties {
-  return {
-    border: 0,
-    borderRadius: 8,
-    padding: "11px 14px",
-    background,
-    color,
-    fontWeight: 700,
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.55 : 1,
-  };
+function ActionButton({
+  disabled,
+  onClick,
+  tone,
+  icon: Icon,
+  children,
+}: {
+  disabled: boolean;
+  onClick: () => void;
+  tone: "green" | "navy" | "amber";
+  icon: ComponentType<{ className?: string }>;
+  children: ReactNode;
+}) {
+  const toneClass = {
+    green: "ares-button-primary hover:opacity-90",
+    navy: "bg-white/[0.08] text-white hover:bg-white/[0.12] border border-[var(--ares-border)]",
+    amber: "bg-amber-500/16 text-amber-100 hover:bg-amber-500/22 border border-amber-400/20",
+  }[tone];
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`inline-flex h-11 items-center justify-center rounded-xl px-3 text-sm font-bold shadow-md transition disabled:cursor-not-allowed disabled:opacity-55 ${toneClass}`}
+    >
+      <Icon className="mr-2 size-4" />
+      {children}
+    </button>
+  );
+}
+
+function SoftBadge({
+  children,
+  tone,
+}: {
+  children: ReactNode;
+  tone: "neutral" | "green" | "red" | "amber" | "blue";
+}) {
+  const className = {
+    neutral: "border-white/10 bg-white/[0.08] text-slate-200",
+    green: "border-emerald-400/25 bg-emerald-400/10 text-emerald-200",
+    red: "border-red-400/25 bg-red-400/10 text-red-200",
+    amber: "border-amber-400/25 bg-amber-400/10 text-amber-200",
+    blue: "border-sky-400/25 bg-sky-400/10 text-sky-200",
+  }[tone];
+
+  return (
+    <Badge variant="outline" className={`font-bold shadow-sm ${className}`}>
+      {children}
+    </Badge>
+  );
 }

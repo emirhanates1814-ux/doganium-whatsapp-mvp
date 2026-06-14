@@ -23,6 +23,7 @@
         "clsx": "^2.1.1",
         "date-fns": "latest",
         "lucide-react": "^1.18.0",
+        "motion": "^12.40.0",
         "next": "latest",
         "radix-ui": "^1.5.0",
         "react": "latest",

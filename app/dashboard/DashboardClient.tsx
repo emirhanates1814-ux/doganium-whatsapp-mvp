@@ -1,6 +1,26 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Car,
+  CheckCircle2,
+  Clock3,
+  Cpu,
+  FileText,
+  Hourglass,
+  Inbox,
+  List,
+  MessageCircle,
+  PlayCircle,
+  RefreshCcw,
+  ShieldCheck,
+  Sparkles,
+  X,
+} from "lucide-react";
+import AppShell from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,98 +77,198 @@ const sourceLabels: Record<TrafficJobRow["source"], string> = {
   test: "Test",
 };
 
+const easeOut = [0.16, 1, 0.3, 1] as const;
+
 export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(jobs[0]?.id ?? null);
-  const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs[0] ?? null;
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const selectedJob = selectedJobId ? jobs.find((job) => job.id === selectedJobId) ?? null : null;
   const summary = useMemo(() => buildSummary(jobs), [jobs]);
+  const openJobDetail = (jobId: string) => {
+    setSelectedJobId(jobId);
+  };
+  const closeJobDetail = () => {
+    setSelectedJobId(null);
+  };
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-      <section className="mx-auto max-w-7xl space-y-6">
-        <Card className="rounded-lg border-slate-200 bg-white">
-          <CardHeader className="gap-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <p className="text-sm font-semibold text-emerald-700">Ares Sigorta</p>
-                  <Badge
-                    variant="outline"
-                    className="border-emerald-200 bg-emerald-50 text-emerald-800"
-                  >
-                    Local Desktop Mode
-                  </Badge>
-                </div>
-                <CardTitle className="mt-3 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-                  Operasyon Paneli
-                </CardTitle>
-                <CardDescription className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  Günlük trafik teklif işleri, yerel job kuyruğu, mock sonuçlar ve durum takibi.
-                </CardDescription>
-              </div>
-              <Button asChild variant="outline" size="lg" className="rounded-md">
-                <a href="/dashboard">Yenile</a>
-              </Button>
+    <AppShell
+      active="dashboard"
+      title="Operasyon Paneli"
+      description="Ares Sigorta trafik teklif işlerini, yerel kuyruğu ve otomasyon hazırlığını tek ekrandan yönetin."
+      badge="Local Desktop Mode"
+      actions={
+        <Button asChild variant="outline" size="lg" className="rounded-xl border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">
+          <a href="/dashboard">
+            <RefreshCcw className="mr-2 size-4" />
+            Yenile
+          </a>
+        </Button>
+      }
+    >
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: easeOut }}
+        className="grid min-w-0 grid-cols-12 gap-4"
+      >
+        <Card className="ares-panel-strong relative col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/25 xl:col-span-9">
+          <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-emerald-300/12 blur-3xl" />
+          <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-emerald-300/35 to-transparent" />
+          <CardHeader className="relative gap-4 p-5">
+            <div className="flex flex-wrap gap-2">
+              <Badge className="border-white/15 bg-white/[0.08] text-white shadow-sm hover:bg-white/[0.12]">
+                <ShieldCheck className="mr-1 size-3.5" />
+                Yerel operasyon
+              </Badge>
+              <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-100 shadow-sm hover:bg-emerald-400/14">
+                <Sparkles className="mr-1 size-3.5" />
+                JSON/mock akışı hazır
+              </Badge>
             </div>
-            <Separator />
-            <AppNavigation active="dashboard" />
+            <div>
+              <CardTitle className="ares-title text-3xl font-black lg:text-4xl">
+                Trafik Teklif Otomasyonu
+              </CardTitle>
+              <CardDescription className="ares-muted mt-2 max-w-3xl text-sm leading-6">
+                Bekleyen işleri izleyin, mock worker sonuçlarını kontrol edin ve en uygun teklifleri
+                hızlıca görün.
+              </CardDescription>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <HeroMetric label="Listelenen iş" value={summary.total} />
+              <HeroMetric label="Tamamlanan" value={summary.completed} />
+              <HeroMetric label="Aksiyon bekleyen" value={summary.pending + summary.waiting_mfa} />
+            </div>
           </CardHeader>
         </Card>
 
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-          <SummaryCard label="Toplam İş" value={summary.total} tone="neutral" />
-          <SummaryCard label="Bekleyen" value={summary.pending} tone="orange" />
-          <SummaryCard label="Çalışan" value={summary.running} tone="blue" />
-          <SummaryCard label="Tamamlanan" value={summary.completed} tone="green" />
-          <SummaryCard label="Hatalı" value={summary.failed} tone="red" />
-          <SummaryCard label="MFA Bekleyen" value={summary.waiting_mfa} tone="amber" />
-        </section>
+        <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/15 xl:col-span-3">
+          <CardHeader className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/10 text-amber-300">
+                <AlertTriangle className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-bold text-amber-100">
+                  Doganium erişimi bekliyor
+                </CardTitle>
+                <CardDescription className="mt-1 text-sm leading-6 text-amber-200/80">
+                  Gerçek otomasyon için yetkili IP veya ofis makinesi gerekli.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+      </motion.section>
 
-        <SystemStatusPanel />
+      <OperationFlow summary={summary} />
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-          <RecentJobsTable
-            jobs={jobs}
-            selectedJobId={selectedJob?.id ?? null}
-            onSelectJob={setSelectedJobId}
-          />
-          <JobDetailPanel job={selectedJob} />
-        </section>
+      <section className="grid min-w-0 grid-cols-12 gap-3">
+        <SummaryCard label="Toplam İş" value={summary.total} tone="navy" helper="Son 50 kayıt" icon={FileText} index={0} />
+        <SummaryCard label="Bekleyen" value={summary.pending} tone="orange" helper="Kuyrukta" icon={Clock3} index={1} />
+        <SummaryCard label="Çalışan" value={summary.running} tone="blue" helper="Worker işliyor" icon={PlayCircle} index={2} />
+        <SummaryCard label="Tamamlanan" value={summary.completed} tone="green" helper="Sonuç hazır" icon={CheckCircle2} index={3} />
+        <SummaryCard label="Hatalı" value={summary.failed} tone="red" helper="Kontrol gerekli" icon={AlertTriangle} index={4} />
+        <SummaryCard label="MFA Bekleyen" value={summary.waiting_mfa} tone="amber" helper="Manuel adım" icon={Hourglass} index={5} />
       </section>
-    </main>
+
+      <SystemStatusPanel />
+
+      <section className="min-w-0">
+        <RecentJobsTable
+          jobs={jobs}
+          selectedJobId={selectedJob?.id ?? null}
+          onSelectJob={openJobDetail}
+        />
+      </section>
+
+      <JobDetailDrawer job={selectedJob} onClose={closeJobDetail} />
+    </AppShell>
   );
 }
 
-function AppNavigation({ active }: { active: "dashboard" | "desktop" }) {
+function HeroMetric({ label, value }: { label: string; value: number }) {
   return (
-    <nav className="flex flex-wrap gap-2">
-      <NavButton href="/dashboard" active={active === "dashboard"}>
-        Operasyon Paneli
-      </NavButton>
-      <NavButton href="/desktop" active={active === "desktop"}>
-        Doganium Teknik Paneli
-      </NavButton>
-    </nav>
+    <div className="ares-surface rounded-2xl p-3">
+      <p className="text-xs font-semibold uppercase text-emerald-50/70">{label}</p>
+      <p className="mt-1 text-2xl font-black text-white">{value}</p>
+    </div>
   );
 }
 
-function NavButton({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: ReactNode;
-}) {
+function OperationFlow({ summary }: { summary: Summary }) {
+  const stages = [
+    { label: "Gelen İş", count: summary.total, icon: Inbox, active: true },
+    { label: "Kuyruk", count: summary.pending, icon: List, active: summary.pending > 0 },
+    { label: "Doganium", count: summary.running + summary.waiting_mfa, icon: Cpu, active: summary.running + summary.waiting_mfa > 0, processing: summary.running > 0 },
+    { label: "Teklif", count: summary.completed, icon: FileText, active: summary.completed > 0 },
+    { label: "WhatsApp", count: 0, icon: MessageCircle, active: false },
+  ];
+
   return (
-    <Button
-      asChild
-      variant={active ? "default" : "outline"}
-      size="lg"
-      className="rounded-md"
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, delay: 0.06, ease: easeOut }}
+      className="ares-panel relative overflow-hidden rounded-3xl p-4 shadow-2xl shadow-black/20"
     >
-      <a href={href}>{children}</a>
-    </Button>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.16),transparent_30%)]" />
+      <div className="relative mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Canlı İş Akışı</p>
+          <p className="ares-muted mt-1 text-sm">WhatsApp talebinden teklif sonucuna kadar yerel operasyon hattı.</p>
+        </div>
+        <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
+          Ares Operasyon Hattı
+        </Badge>
+      </div>
+
+      <div className="relative grid gap-2.5 lg:grid-cols-5">
+        <div className="absolute left-5 right-5 top-1/2 hidden h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-white/12 to-transparent lg:block" />
+        {stages.map((stage, index) => {
+          const Icon = stage.icon;
+          return (
+            <div key={stage.label} className="relative min-w-0">
+              <div
+                className={[
+                  "relative z-10 min-h-[112px] rounded-2xl border p-3.5 transition-colors",
+                  stage.processing
+                    ? "border-emerald-400/28 bg-emerald-400/10"
+                    : stage.active
+                      ? "border-white/12 bg-white/[0.065]"
+                      : "border-white/[0.08] bg-white/[0.035]",
+                ].join(" ")}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span
+                    className={[
+                      "flex size-9 items-center justify-center rounded-xl border",
+                      stage.processing
+                        ? "border-emerald-400/30 bg-emerald-500/12 text-emerald-300"
+                        : stage.active
+                          ? "border-white/12 bg-white/[0.06] text-slate-100"
+                          : "border-white/[0.08] bg-white/[0.035] text-slate-500",
+                    ].join(" ")}
+                  >
+                    <Icon className="size-4" />
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.07] px-2 py-0.5 text-xs font-semibold text-slate-200">
+                    {stage.count}
+                  </span>
+                </div>
+                <p className={stage.processing ? "mt-3 text-sm font-bold text-emerald-300" : "mt-3 text-sm font-bold text-slate-200"}>
+                  {stage.label}
+                </p>
+                <p className="ares-muted mt-1 text-xs">
+                  {stage.processing ? "İşleniyor" : stage.active ? "Aktif" : "Beklemede"}
+                </p>
+              </div>
+              {index < stages.length - 1 ? <div className="absolute -right-1 top-4 hidden h-[84px] w-px bg-white/[0.08] lg:block" /> : null}
+            </div>
+          );
+        })}
+      </div>
+    </motion.section>
   );
 }
 
@@ -156,59 +276,99 @@ function SummaryCard({
   label,
   value,
   tone,
+  helper,
+  icon: Icon,
+  index,
 }: {
   label: string;
   value: number;
-  tone: "neutral" | "green" | "orange" | "red" | "amber" | "blue";
+  tone: "navy" | "green" | "orange" | "red" | "amber" | "blue";
+  helper: string;
+  icon: ComponentType<{ className?: string }>;
+  index: number;
 }) {
   const toneClass = {
-    neutral: "text-slate-950",
-    green: "text-emerald-800",
-    orange: "text-orange-800",
-    red: "text-red-800",
-    amber: "text-amber-800",
-    blue: "text-sky-800",
+    navy: "text-slate-100 border-slate-500/20 bg-slate-400/10",
+    green: "text-emerald-300 border-emerald-500/20 bg-emerald-400/10",
+    orange: "text-orange-300 border-orange-500/20 bg-orange-400/10",
+    red: "text-rose-300 border-rose-500/20 bg-rose-400/10",
+    amber: "text-amber-300 border-amber-500/20 bg-amber-400/10",
+    blue: "text-sky-300 border-sky-500/20 bg-sky-400/10",
   }[tone];
 
   return (
-    <Card className="rounded-lg border-slate-200 bg-white">
-      <CardContent className="pt-0">
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <p className={`mt-2 text-3xl font-bold tracking-tight ${toneClass}`}>{value}</p>
-      </CardContent>
-    </Card>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.17, delay: 0.03 + index * 0.02, ease: easeOut }}
+      className="col-span-6 min-w-0 md:col-span-4 xl:col-span-2"
+    >
+      <Card className={`ares-surface group relative overflow-hidden rounded-xl shadow-xl shadow-black/15 transition-colors hover:bg-white/[0.075] ${toneClass}`}>
+        <div className={`absolute -right-6 -top-6 size-24 rounded-full blur-2xl opacity-20 transition-opacity group-hover:opacity-35 ${toneClass}`} />
+        <CardContent className="relative z-10 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium text-slate-400">{label}</p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-100">{value}</p>
+            </div>
+            <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg border ${toneClass}`}>
+              <Icon className="size-5" />
+            </span>
+          </div>
+          <p className="mt-2 truncate text-[10px] font-medium uppercase text-slate-500">{helper}</p>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
 function SystemStatusPanel() {
   const statuses = [
-    { label: "Local Store", value: "Aktif", tone: "green" },
-    { label: "Doganium", value: "IP / erişim bekleniyor", tone: "orange" },
-    { label: "Mock Worker", value: "Kullanılabilir", tone: "green" },
-    { label: "WhatsApp Webhook", value: "Local test modu", tone: "blue" },
+    { label: "Local Store", value: "Aktif", detail: "JSON varsayılan", tone: "green", icon: ShieldCheck },
+    { label: "Prisma SQLite", value: "Opsiyonel", detail: "Worker bekliyor", tone: "neutral", icon: FileText },
+    { label: "Doganium", value: "IP bekleniyor", detail: "Ofis erişimi gerekli", tone: "orange", icon: AlertTriangle },
+    { label: "Mock Worker", value: "Hazır", detail: "JSON işleri tamamlar", tone: "green", icon: BadgeCheck },
+    { label: "WhatsApp", value: "Local test", detail: "Webhook yok", tone: "blue", icon: Car },
   ] as const;
 
   return (
-    <Card className="rounded-lg border-slate-200 bg-white">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold text-slate-950">Sistem Durumu</CardTitle>
-        <CardDescription className="text-sm text-slate-500">
-          Yerel operasyon bileşenlerinin kısa özeti
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {statuses.map((item) => (
-            <div key={item.label} className="rounded-md border border-slate-200 bg-slate-50 p-3">
-              <p className="text-xs font-semibold uppercase text-slate-500">{item.label}</p>
-              <div className="mt-2">
-                <SoftBadge tone={item.tone}>{item.value}</SoftBadge>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, delay: 0.1, ease: easeOut }}>
+      <Card className="ares-panel rounded-3xl shadow-2xl shadow-black/18">
+        <CardHeader className="p-4 pb-3">
+          <CardTitle className="ares-title text-base font-black">Sistem Durumu</CardTitle>
+          <CardDescription className="ares-muted text-sm">
+            Yerel otomasyon bileşenlerinin kısa operasyon özeti.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-5">
+            {statuses.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -1 }}
+                  transition={{ duration: 0.15, delay: 0.12 + index * 0.02, ease: easeOut }}
+                  className="ares-surface min-w-0 rounded-2xl p-3 shadow-md shadow-black/10"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="ares-muted truncate text-xs font-bold uppercase">{item.label}</p>
+                    <Icon className="size-4 shrink-0 text-[var(--ares-green)]" />
+                  </div>
+                  <div className="mt-2">
+                    <SoftBadge tone={item.tone}>{item.value}</SoftBadge>
+                  </div>
+                  <p className="ares-muted mt-2 truncate text-xs">{item.detail}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -222,186 +382,250 @@ function RecentJobsTable({
   onSelectJob: (jobId: string) => void;
 }) {
   return (
-    <Card className="rounded-lg border-slate-200 bg-white">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold text-slate-950">Son İşler</CardTitle>
-        <CardDescription className="text-sm text-slate-500">
-          Yerel job kuyruğundaki son 50 kayıt
-        </CardDescription>
-      </CardHeader>
-      <Separator />
-
-      {jobs.length === 0 ? (
-        <CardContent>
-          <div className="py-14 text-center">
-            <p className="text-sm font-semibold text-slate-700">Henüz trafik teklif işi yok.</p>
-            <p className="mt-2 text-sm text-slate-500">
-              Test job oluşturulduğunda kayıtlar burada listelenecek.
-            </p>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, delay: 0.16, ease: easeOut }} className="min-w-0">
+      <Card className="ares-panel min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/25">
+        <CardHeader className="border-b border-[var(--ares-border)] bg-[rgba(7,21,33,0.36)] p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="text-xl font-black text-slate-100">İşlem Kuyruğu</CardTitle>
+              <CardDescription className="text-sm text-slate-400">
+                Detay butonu seçili işi sağ taraftaki operasyon çekmecesinde açar.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-emerald-200 shadow-sm">
+              {jobs.length} kayıt
+            </Badge>
           </div>
-        </CardContent>
-      ) : (
-        <CardContent className="pt-0">
-          <Table className="min-w-[980px]">
-            <TableHeader className="bg-slate-50">
-              <TableRow>
-                <TableHead>Tarih</TableHead>
-                <TableHead>Telefon</TableHead>
-                <TableHead>Plaka</TableHead>
-                <TableHead>TCKN</TableHead>
-                <TableHead>Belge Seri</TableHead>
-                <TableHead>Durum</TableHead>
-                <TableHead>Kaynak</TableHead>
-                <TableHead className="text-right">Aksiyon</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.map((job) => (
-                <TableRow
-                  key={job.id}
-                  data-state={selectedJobId === job.id ? "selected" : undefined}
-                >
-                  <TableCell className="text-slate-600">{formatDate(job.createdAt)}</TableCell>
-                  <TableCell className="font-medium text-slate-900">
-                    {job.customerPhone || "-"}
-                  </TableCell>
-                  <TableCell className="text-slate-700">{job.plate ?? "-"}</TableCell>
-                  <TableCell className="text-slate-700">{maskTckn(job.tckn)}</TableCell>
-                  <TableCell className="text-slate-700">{job.documentSerial ?? "-"}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={job.status} />
-                  </TableCell>
-                  <TableCell className="text-slate-700">
-                    {sourceLabels[job.source] ?? job.source}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="rounded-md"
-                      onClick={() => onSelectJob(job.id)}
-                    >
-                      Detay
-                    </Button>
-                  </TableCell>
+        </CardHeader>
+        <Separator />
+
+        {jobs.length === 0 ? (
+          <CardContent>
+            <div className="grid gap-4 py-12 text-center">
+              <div>
+                <p className="text-base font-semibold text-slate-100">Henüz trafik teklif işi yok.</p>
+                <p className="mt-2 text-sm text-slate-400">
+                  Yerel JSON akışını test etmek için önce test job oluşturun, sonra mock worker çalıştırın.
+                </p>
+              </div>
+              <div className="mx-auto grid max-w-2xl gap-2 rounded-2xl border border-white/10 bg-slate-900/80 p-4 text-left text-sm text-emerald-100">
+                <code>powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\scripts\create-test-traffic-job.ps1"</code>
+                <code>python ".\worker\mock_doganium_worker.py"</code>
+              </div>
+            </div>
+          </CardContent>
+        ) : (
+          <CardContent className="p-0">
+            <Table className="w-full table-fixed">
+              <TableHeader className="sticky top-0 z-10 bg-slate-900/85">
+                <TableRow>
+                  <TableHead className="h-12 w-[150px] px-5 font-bold text-emerald-50">Tarih</TableHead>
+                  <TableHead className="px-4 font-bold text-emerald-50">Telefon</TableHead>
+                  <TableHead className="w-[130px] px-4 font-bold text-emerald-50">Plaka</TableHead>
+                  <TableHead className="w-[140px] px-4 font-bold text-emerald-50">TCKN</TableHead>
+                  <TableHead className="w-[150px] px-4 font-bold text-emerald-50">Durum</TableHead>
+                  <TableHead className="w-[120px] px-5 text-right font-bold text-emerald-50">Aksiyon</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      )}
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {jobs.map((job, index) => (
+                  <motion.tr
+                    key={job.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    whileHover={{ backgroundColor: "rgba(16, 185, 129, 0.09)" }}
+                    transition={{ duration: 0.14, delay: Math.min(index, 8) * 0.015, ease: easeOut }}
+                    data-state={selectedJobId === job.id ? "selected" : undefined}
+                    className="h-16 border-b border-white/5 odd:bg-white/[0.03] even:bg-white/[0.055] data-[state=selected]:bg-emerald-500/12 data-[state=selected]:shadow-[inset_4px_0_0_#10b981]"
+                  >
+                    <TableCell className="px-5 text-xs text-slate-400">{formatDate(job.createdAt)}</TableCell>
+                    <TableCell className="truncate px-4 font-semibold text-slate-100">{job.customerPhone || "-"}</TableCell>
+                    <TableCell className="px-4">
+                      <span className="inline-flex max-w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs font-bold tracking-wide text-slate-100">
+                        <span className="truncate">{job.plate ?? "-"}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-4 text-xs text-slate-400">{maskTckn(job.tckn)}</TableCell>
+                    <TableCell className="px-4"><StatusBadge status={job.status} /></TableCell>
+                    <TableCell className="px-5 text-right">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-9 rounded-xl bg-[linear-gradient(135deg,#102033,#0f7a4f)] px-4 text-xs font-bold text-white shadow-md shadow-slate-900/15 hover:bg-[var(--ares-green)]"
+                        onClick={() => onSelectJob(job.id)}
+                      >
+                        Detay
+                      </Button>
+                    </TableCell>
+                  </motion.tr>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        )}
+      </Card>
+    </motion.div>
   );
 }
 
-function JobDetailPanel({ job }: { job: DashboardJob | null }) {
+function JobDetailDrawer({ job, onClose }: { job: DashboardJob | null; onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      {job ? <JobDetailDrawerContent key={job.id} job={job} onClose={onClose} /> : null}
+    </AnimatePresence>
+  );
+}
+
+function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: () => void }) {
   if (!job) {
     return (
-      <Card className="rounded-lg border-slate-200 bg-white">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold text-slate-950">İş Detayı</CardTitle>
-          <CardDescription>Detayları görmek için tablodan bir iş seçin.</CardDescription>
-        </CardHeader>
-      </Card>
+      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: easeOut }}>
+        <Card className="ares-panel rounded-2xl shadow-xl shadow-black/20">
+          <CardHeader>
+            <CardTitle className="ares-title text-lg font-bold">İş Detayı</CardTitle>
+            <CardDescription className="ares-muted">Detayları görmek için tablodan bir iş seçin.</CardDescription>
+          </CardHeader>
+        </Card>
+      </motion.div>
     );
   }
 
   const cheapestPremium = getCheapestPremium(job.result);
+  const shortId = job.id.length > 12 ? `${job.id.slice(0, 8)}...${job.id.slice(-4)}` : job.id;
 
   return (
-    <Card className="rounded-lg border-slate-200 bg-white">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <CardTitle className="text-base font-semibold text-slate-950">İş Detayı</CardTitle>
-            <CardDescription className="mt-1 truncate text-xs">{job.id}</CardDescription>
+    <>
+      <motion.button
+        type="button"
+        aria-label="Detay panelini kapat"
+        className="fixed inset-0 z-40 hidden bg-black/35 backdrop-blur-[2px] lg:block"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.16, ease: easeOut }}
+        onClick={onClose}
+      />
+      <motion.aside
+        initial={{ opacity: 0, x: 34 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 34 }}
+        transition={{ duration: 0.2, ease: easeOut }}
+        className="fixed bottom-6 left-4 right-4 top-[96px] z-50 flex min-h-0 lg:left-auto lg:right-6 lg:w-[440px]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Seçili iş detayları"
+      >
+      <Card className="ares-panel-strong flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-3xl shadow-2xl shadow-black/35">
+        <CardHeader className="shrink-0 bg-[linear-gradient(135deg,#071521,#102033_54%,#0f7a4f)] p-5 text-white">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg font-bold text-white">Seçili İş</CardTitle>
+                <StatusBadge status={job.status} />
+              </div>
+              <CardDescription className="mt-1 truncate text-xs text-emerald-50/75">
+                {shortId}
+              </CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-9 shrink-0 rounded-xl text-white/80 hover:bg-white/10 hover:text-white"
+              onClick={onClose}
+            >
+              <X className="size-4" />
+              <span className="sr-only">Kapat</span>
+            </Button>
           </div>
-          <StatusBadge status={job.status} />
-        </div>
-      </CardHeader>
-      <Separator />
+        </CardHeader>
 
-      <CardContent className="space-y-5 pt-0">
-        <dl className="grid grid-cols-1 gap-3 text-sm">
-          <DetailRow label="Telefon" value={job.customerPhone || "-"} />
-          <DetailRow label="Plaka" value={job.plate ?? "-"} />
-          <DetailRow label="TCKN" value={maskTckn(job.tckn)} />
-          <DetailRow label="Belge Seri" value={job.documentSerial ?? "-"} />
-          <DetailRow label="Doğum Tarihi" value={job.birthDate ?? "-"} />
-          <DetailRow label="Durum" value={statusLabels[job.status]} />
-          <DetailRow label="Kaynak" value={sourceLabels[job.source] ?? job.source} />
-        </dl>
+        <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[var(--ares-panel)] p-4">
+          <section>
+            <p className="mb-3 text-sm font-bold text-slate-100">Müşteri ve İş Bilgileri</p>
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              <DetailPill label="Telefon" value={job.customerPhone || "-"} span />
+              <DetailPill label="Plaka" value={job.plate ?? "-"} />
+              <DetailPill label="TCKN" value={maskTckn(job.tckn)} />
+              <DetailPill label="Belge" value={job.documentSerial ?? "-"} />
+              <DetailPill label="Doğum" value={job.birthDate ?? "-"} />
+              <DetailPill label="Kaynak" value={sourceLabels[job.source] ?? job.source} span />
+            </dl>
+          </section>
 
-        <Separator />
+          <Separator />
 
-        <div>
-          <p className="text-sm font-semibold text-slate-950">Ham Mesaj</p>
-          <ScrollArea className="mt-2 h-28 rounded-md border border-slate-200 bg-slate-50">
-            <div className="p-3 text-sm leading-6 text-slate-700">
-              {job.rawMessage || "Ham mesaj yok."}
+          <section>
+            <p className="text-sm font-bold text-slate-100">Ham Mesaj</p>
+            <ScrollArea className="ares-surface mt-2 h-24 rounded-2xl">
+              <div className="p-3 text-sm leading-6 text-slate-300">{job.rawMessage || "Ham mesaj yok."}</div>
+            </ScrollArea>
+          </section>
+
+          <Separator />
+
+          <section>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-bold text-slate-100">Teklif Sonuçları</p>
+              {job.result?.summary ? <span className="text-xs font-medium text-slate-500">{job.result.summary}</span> : null}
             </div>
-          </ScrollArea>
-        </div>
 
-        <Separator />
+            {!job.result?.quotes.length ? (
+              <div className="ares-surface mt-3 rounded-2xl p-4 text-sm text-slate-400">
+                Bu iş için henüz teklif sonucu yok. Mock worker tamamlandığında teklifler burada görünecek.
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {job.result.quotes.map((quote, index) => {
+                  const isCheapest = quote.premium === cheapestPremium;
 
-        <div>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-slate-950">Teklif Sonuçları</p>
-            {job.result?.summary ? (
-              <span className="text-xs font-medium text-slate-500">{job.result.summary}</span>
-            ) : null}
-          </div>
-
-          {!job.result?.quotes.length ? (
-            <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-              Bu iş için henüz teklif sonucu yok.
-            </div>
-          ) : (
-            <div className="mt-3 space-y-3">
-              {job.result.quotes.map((quote, index) => {
-                const isCheapest = quote.premium === cheapestPremium;
-
-                return (
-                  <Card
-                    key={`${quote.company}-${index}`}
-                    className={
-                      isCheapest
-                        ? "rounded-lg border-emerald-300 bg-emerald-50"
-                        : "rounded-lg border-slate-200 bg-white"
-                    }
-                  >
-                    <CardContent className="pt-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-slate-950">{quote.company}</p>
-                          {quote.description ? (
-                            <p className="mt-1 text-sm text-slate-600">{quote.description}</p>
-                          ) : null}
-                        </div>
-                        {isCheapest ? <SoftBadge tone="green">En uygun</SoftBadge> : null}
-                      </div>
-                      <p className="mt-3 text-2xl font-bold text-slate-950">
-                        {formatCurrency(quote.premium, quote.currency)}
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+                  return (
+                    <motion.div
+                      key={`${quote.company}-${index}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ y: -2 }}
+                      transition={{ duration: 0.15, delay: index * 0.02, ease: easeOut }}
+                    >
+                      <Card
+                        className={
+                          isCheapest
+                            ? "overflow-hidden rounded-2xl border-emerald-400 bg-emerald-400/10 shadow-lg shadow-emerald-900/10"
+                            : "ares-surface rounded-2xl shadow-sm"
+                        }
+                      >
+                        {isCheapest ? <div className="h-1.5 bg-[var(--ares-green)]" /> : null}
+                        <CardContent className="p-4 pt-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate font-bold text-slate-100">{quote.company}</p>
+                              {quote.description ? <p className="mt-1 text-sm text-slate-400">{quote.description}</p> : null}
+                            </div>
+                            {isCheapest ? <SoftBadge tone="green">En uygun</SoftBadge> : null}
+                          </div>
+                          <p className="mt-3 text-2xl font-black text-slate-100">
+                            {formatCurrency(quote.premium, quote.currency)}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </CardContent>
+      </Card>
+      </motion.aside>
+    </>
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function DetailPill({ label, value, span = false }: { label: string; value: string; span?: boolean }) {
   return (
-    <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-3">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="break-words font-medium text-slate-900">{value}</dd>
+    <div className={`ares-surface min-w-0 rounded-xl px-3 py-2 ${span ? "col-span-2" : ""}`}>
+      <dt className="text-xs font-medium text-slate-400">{label}</dt>
+      <dd className="mt-0.5 truncate font-semibold text-slate-100">{value}</dd>
     </div>
   );
 }
@@ -420,7 +644,20 @@ function StatusBadge({ status }: { status: TrafficJobRow["status"] }) {
               ? "neutral"
               : "orange";
 
-  return <SoftBadge tone={tone}>{statusLabels[status]}</SoftBadge>;
+  return <SoftBadge tone={tone}>{getStatusLabel(status)}</SoftBadge>;
+}
+
+function getStatusLabel(status: TrafficJobRow["status"]) {
+  const labels: Record<TrafficJobRow["status"], string> = {
+    pending: "Bekliyor",
+    running: "Çalışıyor",
+    waiting_mfa: "MFA Bekliyor",
+    completed: "Tamamlandı",
+    failed: "Hata",
+    cancelled: "İptal",
+  };
+
+  return labels[status];
 }
 
 function SoftBadge({
@@ -431,16 +668,16 @@ function SoftBadge({
   tone: "neutral" | "green" | "orange" | "red" | "amber" | "blue";
 }) {
   const className = {
-    neutral: "border-slate-200 bg-slate-100 text-slate-700",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-800",
-    orange: "border-orange-200 bg-orange-50 text-orange-800",
-    red: "border-red-200 bg-red-50 text-red-800",
-    amber: "border-amber-200 bg-amber-50 text-amber-900",
-    blue: "border-sky-200 bg-sky-50 text-sky-800",
+    neutral: "border-white/10 bg-white/[0.08] text-slate-200",
+    green: "border-emerald-400/25 bg-emerald-400/10 text-emerald-200",
+    orange: "border-orange-400/25 bg-orange-400/10 text-orange-200",
+    red: "border-red-400/25 bg-red-400/10 text-red-200",
+    amber: "border-amber-400/25 bg-amber-400/10 text-amber-200",
+    blue: "border-sky-400/25 bg-sky-400/10 text-sky-200",
   }[tone];
 
   return (
-    <Badge variant="outline" className={className}>
+    <Badge variant="outline" className={`shrink-0 font-bold shadow-sm ${className}`}>
       {children}
     </Badge>
   );
