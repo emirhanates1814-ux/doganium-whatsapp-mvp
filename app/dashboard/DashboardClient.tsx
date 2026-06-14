@@ -182,6 +182,8 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
         />
       </section>
 
+      {!selectedJob ? <NoSelectedJobHint hasJobs={jobs.length > 0} /> : null}
+
       <JobDetailDrawer job={selectedJob} onClose={closeJobDetail} />
     </AppShell>
   );
@@ -381,9 +383,9 @@ function RecentJobsTable({
 }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18, delay: 0.16, ease: easeOut }} className="min-w-0">
-      <Card className="ares-panel min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/25">
-        <CardHeader className="border-b border-[var(--ares-border)] bg-[rgba(7,21,33,0.36)] p-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <Card className="ares-panel min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/25 ring-1 ring-emerald-300/5">
+        <CardHeader className="border-b border-[var(--ares-border)] bg-[rgba(7,21,33,0.46)] p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="text-xl font-black text-slate-100">İşlem Kuyruğu</CardTitle>
               <CardDescription className="text-sm text-slate-400">
@@ -415,14 +417,14 @@ function RecentJobsTable({
         ) : (
           <CardContent className="p-0">
             <Table className="w-full table-fixed">
-              <TableHeader className="sticky top-0 z-10 bg-slate-900/85">
-                <TableRow>
-                  <TableHead className="h-12 w-[150px] px-5 font-bold text-emerald-50">Tarih</TableHead>
-                  <TableHead className="px-4 font-bold text-emerald-50">Telefon</TableHead>
-                  <TableHead className="w-[130px] px-4 font-bold text-emerald-50">Plaka</TableHead>
-                  <TableHead className="w-[140px] px-4 font-bold text-emerald-50">TCKN</TableHead>
-                  <TableHead className="w-[150px] px-4 font-bold text-emerald-50">Durum</TableHead>
-                  <TableHead className="w-[120px] px-5 text-right font-bold text-emerald-50">Aksiyon</TableHead>
+              <TableHeader className="sticky top-0 z-10 bg-[rgba(7,21,33,0.92)]">
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="h-12 w-[158px] px-5 text-xs font-bold uppercase tracking-wide text-slate-300">Tarih</TableHead>
+                  <TableHead className="px-4 text-xs font-bold uppercase tracking-wide text-slate-300">Telefon</TableHead>
+                  <TableHead className="w-[132px] px-4 text-xs font-bold uppercase tracking-wide text-slate-300">Plaka</TableHead>
+                  <TableHead className="w-[142px] px-4 text-xs font-bold uppercase tracking-wide text-slate-300">TCKN</TableHead>
+                  <TableHead className="w-[154px] px-4 text-xs font-bold uppercase tracking-wide text-slate-300">Durum</TableHead>
+                  <TableHead className="w-[128px] px-5 text-right text-xs font-bold uppercase tracking-wide text-slate-300">Aksiyon</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -431,12 +433,12 @@ function RecentJobsTable({
                     key={job.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ backgroundColor: "rgba(16, 185, 129, 0.09)" }}
+                    whileHover={{ backgroundColor: "rgba(16, 185, 129, 0.075)" }}
                     transition={{ duration: 0.14, delay: Math.min(index, 8) * 0.015, ease: easeOut }}
                     data-state={selectedJobId === job.id ? "selected" : undefined}
-                    className="h-16 border-b border-white/5 odd:bg-white/[0.03] even:bg-white/[0.055] data-[state=selected]:bg-emerald-500/12 data-[state=selected]:shadow-[inset_4px_0_0_#10b981]"
+                    className="h-16 border-b border-white/[0.06] odd:bg-white/[0.025] even:bg-white/[0.045] transition-colors data-[state=selected]:bg-emerald-500/14 data-[state=selected]:shadow-[inset_4px_0_0_#10b981]"
                   >
-                    <TableCell className="px-5 text-xs text-slate-400">{formatDate(job.createdAt)}</TableCell>
+                    <TableCell className="px-5 text-xs font-medium text-slate-400">{formatDate(job.createdAt)}</TableCell>
                     <TableCell className="truncate px-4 font-semibold text-slate-100">{job.customerPhone || "-"}</TableCell>
                     <TableCell className="px-4">
                       <span className="inline-flex max-w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs font-bold tracking-wide text-slate-100">
@@ -449,7 +451,8 @@ function RecentJobsTable({
                       <Button
                         type="button"
                         size="sm"
-                        className="h-9 rounded-xl bg-[linear-gradient(135deg,#102033,#0f7a4f)] px-4 text-xs font-bold text-white shadow-md shadow-slate-900/15 hover:bg-[var(--ares-green)]"
+                        variant="outline"
+                        className="h-9 rounded-xl border-emerald-400/25 bg-emerald-400/10 px-4 text-xs font-bold text-emerald-100 shadow-sm hover:bg-emerald-400/16 hover:text-white"
                         onClick={() => onSelectJob(job.id)}
                       >
                         Detay
@@ -471,6 +474,34 @@ function JobDetailDrawer({ job, onClose }: { job: DashboardJob | null; onClose: 
     <AnimatePresence>
       {job ? <JobDetailDrawerContent key={job.id} job={job} onClose={onClose} /> : null}
     </AnimatePresence>
+  );
+}
+
+function NoSelectedJobHint({ hasJobs }: { hasJobs: boolean }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.16, ease: easeOut }}
+      className="ares-surface rounded-3xl p-4"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-bold text-slate-100">
+            {hasJobs ? "İş detayını açmak için bir kayıt seçin." : "Test akışı için yerel job oluşturun."}
+          </p>
+          <p className="ares-muted mt-1 text-sm">
+            {hasJobs
+              ? "Detay çekmecesinde müşteri bilgileri, ham mesaj ve teklif sonuçları görüntülenir."
+              : "Yerel JSON store ve mock worker ile Doganium erişimi olmadan demo akışını doğrulayabilirsiniz."}
+          </p>
+        </div>
+        <div className="grid shrink-0 gap-1.5 rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-xs text-emerald-100">
+          <code>.\scripts\create-test-traffic-job.ps1</code>
+          <code>python .\worker\mock_doganium_worker.py</code>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -508,17 +539,17 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 34 }}
         transition={{ duration: 0.2, ease: easeOut }}
-        className="fixed bottom-6 left-4 right-4 top-[96px] z-50 flex min-h-0 lg:left-auto lg:right-6 lg:w-[440px]"
+        className="fixed bottom-6 left-4 right-4 top-[88px] z-50 flex min-h-0 lg:left-auto lg:right-6 lg:w-[460px]"
         role="dialog"
         aria-modal="true"
         aria-label="Seçili iş detayları"
       >
-      <Card className="ares-panel-strong flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-3xl shadow-2xl shadow-black/35">
-        <CardHeader className="shrink-0 bg-[linear-gradient(135deg,#071521,#102033_54%,#0f7a4f)] p-5 text-white">
+      <Card className="ares-panel-strong flex min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-3xl border border-emerald-300/12 shadow-2xl shadow-black/35">
+        <CardHeader className="shrink-0 border-b border-white/10 bg-[linear-gradient(135deg,#06111d,#102033_62%,#0b5f3f)] p-5 text-white">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-lg font-bold text-white">Seçili İş</CardTitle>
+                <CardTitle className="text-lg font-black text-white">Seçili İş</CardTitle>
                 <StatusBadge status={job.status} />
               </div>
               <CardDescription className="mt-1 truncate text-xs text-emerald-50/75">
@@ -538,10 +569,10 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
           </div>
         </CardHeader>
 
-        <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-[var(--ares-panel)] p-4">
+        <CardContent className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-[var(--ares-panel)] p-5">
           <section>
             <p className="mb-3 text-sm font-bold text-slate-100">Müşteri ve İş Bilgileri</p>
-            <dl className="grid grid-cols-2 gap-2 text-sm">
+            <dl className="grid grid-cols-2 gap-2.5 text-sm">
               <DetailPill label="Telefon" value={job.customerPhone || "-"} span />
               <DetailPill label="Plaka" value={job.plate ?? "-"} />
               <DetailPill label="TCKN" value={maskTckn(job.tckn)} />
@@ -555,8 +586,8 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
 
           <section>
             <p className="text-sm font-bold text-slate-100">Ham Mesaj</p>
-            <ScrollArea className="ares-surface mt-2 h-24 rounded-2xl">
-              <div className="p-3 text-sm leading-6 text-slate-300">{job.rawMessage || "Ham mesaj yok."}</div>
+            <ScrollArea className="ares-surface mt-2 h-28 rounded-2xl">
+              <div className="p-4 text-sm leading-6 text-slate-300">{job.rawMessage || "Ham mesaj yok."}</div>
             </ScrollArea>
           </section>
 
@@ -588,20 +619,20 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
                       <Card
                         className={
                           isCheapest
-                            ? "overflow-hidden rounded-2xl border-emerald-400 bg-emerald-400/10 shadow-lg shadow-emerald-900/10"
+                            ? "overflow-hidden rounded-2xl border-emerald-300/70 bg-emerald-400/12 shadow-lg shadow-emerald-950/18 ring-1 ring-emerald-300/20"
                             : "ares-surface rounded-2xl shadow-sm"
                         }
                       >
-                        {isCheapest ? <div className="h-1.5 bg-[var(--ares-green)]" /> : null}
-                        <CardContent className="p-4 pt-3">
+                        {isCheapest ? <div className="h-1.5 bg-gradient-to-r from-emerald-300 via-emerald-500 to-teal-400" /> : null}
+                        <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="truncate font-bold text-slate-100">{quote.company}</p>
                               {quote.description ? <p className="mt-1 text-sm text-slate-400">{quote.description}</p> : null}
                             </div>
-                            {isCheapest ? <SoftBadge tone="green">En uygun</SoftBadge> : null}
+                            {isCheapest ? <SoftBadge tone="green">En uygun teklif</SoftBadge> : null}
                           </div>
-                          <p className="mt-3 text-2xl font-black text-slate-100">
+                          <p className={isCheapest ? "mt-3 text-2xl font-black text-emerald-100" : "mt-3 text-2xl font-black text-slate-100"}>
                             {formatCurrency(quote.premium, quote.currency)}
                           </p>
                         </CardContent>
@@ -621,7 +652,7 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
 
 function DetailPill({ label, value, span = false }: { label: string; value: string; span?: boolean }) {
   return (
-    <div className={`ares-surface min-w-0 rounded-xl px-3 py-2 ${span ? "col-span-2" : ""}`}>
+    <div className={`ares-surface min-w-0 rounded-2xl px-3.5 py-3 ${span ? "col-span-2" : ""}`}>
       <dt className="text-xs font-medium text-slate-400">{label}</dt>
       <dd className="mt-0.5 truncate font-semibold text-slate-100">{value}</dd>
     </div>

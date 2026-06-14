@@ -82,7 +82,7 @@ export default function AppShell({
           </div>
         </div>
 
-        <nav className="flex min-h-0 flex-1 flex-col gap-1.5 px-3">
+        <nav className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-3">
           {navItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = active === item.key;
@@ -126,9 +126,9 @@ export default function AppShell({
           })}
         </nav>
 
-        <div className="p-3">
+        <div className="shrink-0 p-3">
           <Separator className="mb-3 bg-white/10" />
-          <div className="ares-panel rounded-3xl p-3">
+          <div className="ares-panel max-h-40 overflow-hidden rounded-3xl p-3">
             <div className="flex items-center gap-2">
               <span className="flex size-8 items-center justify-center rounded-lg bg-emerald-400/15 text-emerald-100">
                 <Activity className="size-4" />

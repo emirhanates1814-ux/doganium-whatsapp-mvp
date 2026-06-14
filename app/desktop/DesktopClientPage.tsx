@@ -416,7 +416,9 @@ export default function DesktopClientPage() {
         <Separator />
         <CardContent className="p-5">
           <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-[var(--ares-border)] bg-[var(--ares-deep)] p-5 text-xs leading-6 text-emerald-50 shadow-inner">
-            {formatJson(lastResult)}
+            {lastResult
+              ? formatJson(lastResult)
+              : "Henüz teknik çıktı yok. IPC ping, ayar kaydetme veya DevTools kontrol aksiyonlarından biri çalıştırıldığında sonuç burada görünecek."}
           </pre>
         </CardContent>
       </Card>
