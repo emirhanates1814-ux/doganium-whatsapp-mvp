@@ -7,7 +7,7 @@ const http = require("node:http");
 let mainWindow = null;
 
 const APP_TITLE = "Doganium WhatsApp Otomasyon";
-const DEV_URL = "http://127.0.0.1:3000/desktop";
+const DEV_URL = "http://127.0.0.1:3000/dashboard";
 const DEVTOOLS_PORT = 9222;
 const DEVTOOLS_ARGS = [`--remote-debugging-port=${DEVTOOLS_PORT}`, "--remote-allow-origins=*"];
 
