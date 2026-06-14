@@ -1,6 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { TrafficJobResultPayload } from "@/types/traffic";
 import type { TrafficJobRow } from "@/lib/traffic-jobs";
 
@@ -46,28 +65,34 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <section className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-sm font-semibold text-emerald-700">Ares Sigorta</p>
-              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                Local Desktop Mode
-              </span>
+        <Card className="rounded-lg border-slate-200 bg-white">
+          <CardHeader className="gap-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-sm font-semibold text-emerald-700">Ares Sigorta</p>
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-200 bg-emerald-50 text-emerald-800"
+                  >
+                    Local Desktop Mode
+                  </Badge>
+                </div>
+                <CardTitle className="mt-3 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                  Operasyon Paneli
+                </CardTitle>
+                <CardDescription className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  Günlük trafik teklif işleri, yerel job kuyruğu, mock sonuçlar ve durum takibi.
+                </CardDescription>
+              </div>
+              <Button asChild variant="outline" size="lg" className="rounded-md">
+                <a href="/dashboard">Yenile</a>
+              </Button>
             </div>
-            <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-              Trafik Teklif Otomasyon Paneli
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Yerel job kuyruğu, mock sonuçlar ve Doganium hazırlık akışı
-            </p>
-          </div>
-          <a
-            href="/dashboard"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            Yenile
-          </a>
-        </header>
+            <Separator />
+            <AppNavigation active="dashboard" />
+          </CardHeader>
+        </Card>
 
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <SummaryCard label="Toplam İş" value={summary.total} tone="neutral" />
@@ -80,7 +105,7 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
 
         <SystemStatusPanel />
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
           <RecentJobsTable
             jobs={jobs}
             selectedJobId={selectedJob?.id ?? null}
@@ -90,6 +115,40 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
         </section>
       </section>
     </main>
+  );
+}
+
+function AppNavigation({ active }: { active: "dashboard" | "desktop" }) {
+  return (
+    <nav className="flex flex-wrap gap-2">
+      <NavButton href="/dashboard" active={active === "dashboard"}>
+        Operasyon Paneli
+      </NavButton>
+      <NavButton href="/desktop" active={active === "desktop"}>
+        Doganium Teknik Paneli
+      </NavButton>
+    </nav>
+  );
+}
+
+function NavButton({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Button
+      asChild
+      variant={active ? "default" : "outline"}
+      size="lg"
+      className="rounded-md"
+    >
+      <a href={href}>{children}</a>
+    </Button>
   );
 }
 
@@ -103,19 +162,21 @@ function SummaryCard({
   tone: "neutral" | "green" | "orange" | "red" | "amber" | "blue";
 }) {
   const toneClass = {
-    neutral: "border-slate-200 text-slate-950",
-    green: "border-emerald-200 text-emerald-800",
-    orange: "border-orange-200 text-orange-800",
-    red: "border-red-200 text-red-800",
-    amber: "border-amber-200 text-amber-800",
-    blue: "border-sky-200 text-sky-800",
+    neutral: "text-slate-950",
+    green: "text-emerald-800",
+    orange: "text-orange-800",
+    red: "text-red-800",
+    amber: "text-amber-800",
+    blue: "text-sky-800",
   }[tone];
 
   return (
-    <article className={`rounded-lg border bg-white p-4 shadow-sm ${toneClass}`}>
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
-    </article>
+    <Card className="rounded-lg border-slate-200 bg-white">
+      <CardContent className="pt-0">
+        <p className="text-sm font-medium text-slate-500">{label}</p>
+        <p className={`mt-2 text-3xl font-bold tracking-tight ${toneClass}`}>{value}</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -128,24 +189,26 @@ function SystemStatusPanel() {
   ] as const;
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-slate-950">Sistem Durumu</h2>
-          <p className="mt-1 text-sm text-slate-500">Yerel operasyon bileşenlerinin kısa özeti</p>
-        </div>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {statuses.map((item) => (
-          <div key={item.label} className="rounded-md border border-slate-200 bg-slate-50 p-3">
-            <p className="text-xs font-semibold uppercase text-slate-500">{item.label}</p>
-            <div className="mt-2">
-              <SoftBadge tone={item.tone}>{item.value}</SoftBadge>
+    <Card className="rounded-lg border-slate-200 bg-white">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold text-slate-950">Sistem Durumu</CardTitle>
+        <CardDescription className="text-sm text-slate-500">
+          Yerel operasyon bileşenlerinin kısa özeti
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {statuses.map((item) => (
+            <div key={item.label} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase text-slate-500">{item.label}</p>
+              <div className="mt-2">
+                <SoftBadge tone={item.tone}>{item.value}</SoftBadge>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </section>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -159,107 +222,107 @@ function RecentJobsTable({
   onSelectJob: (jobId: string) => void;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
-        <h2 className="text-base font-semibold text-slate-950">Son İşler</h2>
-        <p className="mt-1 text-sm text-slate-500">Yerel job kuyruğundaki son 50 kayıt</p>
-      </div>
+    <Card className="rounded-lg border-slate-200 bg-white">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold text-slate-950">Son İşler</CardTitle>
+        <CardDescription className="text-sm text-slate-500">
+          Yerel job kuyruğundaki son 50 kayıt
+        </CardDescription>
+      </CardHeader>
+      <Separator />
 
       {jobs.length === 0 ? (
-        <div className="px-4 py-14 text-center">
-          <p className="text-sm font-semibold text-slate-700">Henüz trafik teklif işi yok.</p>
-          <p className="mt-2 text-sm text-slate-500">
-            Test job oluşturulduğunda kayıtlar burada listelenecek.
-          </p>
-        </div>
+        <CardContent>
+          <div className="py-14 text-center">
+            <p className="text-sm font-semibold text-slate-700">Henüz trafik teklif işi yok.</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Test job oluşturulduğunda kayıtlar burada listelenecek.
+            </p>
+          </div>
+        </CardContent>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-[980px] divide-y divide-slate-200 text-left text-sm">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Tarih</th>
-                <th className="px-4 py-3">Telefon</th>
-                <th className="px-4 py-3">Plaka</th>
-                <th className="px-4 py-3">TCKN</th>
-                <th className="px-4 py-3">Belge Seri</th>
-                <th className="px-4 py-3">Durum</th>
-                <th className="px-4 py-3">Kaynak</th>
-                <th className="px-4 py-3 text-right">Aksiyon</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+        <CardContent className="pt-0">
+          <Table className="min-w-[980px]">
+            <TableHeader className="bg-slate-50">
+              <TableRow>
+                <TableHead>Tarih</TableHead>
+                <TableHead>Telefon</TableHead>
+                <TableHead>Plaka</TableHead>
+                <TableHead>TCKN</TableHead>
+                <TableHead>Belge Seri</TableHead>
+                <TableHead>Durum</TableHead>
+                <TableHead>Kaynak</TableHead>
+                <TableHead className="text-right">Aksiyon</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {jobs.map((job) => (
-                <tr
+                <TableRow
                   key={job.id}
-                  className={selectedJobId === job.id ? "bg-slate-50" : "hover:bg-slate-50"}
+                  data-state={selectedJobId === job.id ? "selected" : undefined}
                 >
-                  <td className="whitespace-nowrap px-4 py-4 text-slate-600">
-                    {formatDate(job.createdAt)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 font-medium text-slate-900">
+                  <TableCell className="text-slate-600">{formatDate(job.createdAt)}</TableCell>
+                  <TableCell className="font-medium text-slate-900">
                     {job.customerPhone || "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 text-slate-700">
-                    {job.plate ?? "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 text-slate-700">
-                    {maskTckn(job.tckn)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 text-slate-700">
-                    {job.documentSerial ?? "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4">
+                  </TableCell>
+                  <TableCell className="text-slate-700">{job.plate ?? "-"}</TableCell>
+                  <TableCell className="text-slate-700">{maskTckn(job.tckn)}</TableCell>
+                  <TableCell className="text-slate-700">{job.documentSerial ?? "-"}</TableCell>
+                  <TableCell>
                     <StatusBadge status={job.status} />
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 text-slate-700">
+                  </TableCell>
+                  <TableCell className="text-slate-700">
                     {sourceLabels[job.source] ?? job.source}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-4 text-right">
-                    <button
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-md"
                       onClick={() => onSelectJob(job.id)}
-                      className="inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
                     >
                       Detay
-                    </button>
-                  </td>
-                </tr>
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </CardContent>
       )}
-    </section>
+    </Card>
   );
 }
 
 function JobDetailPanel({ job }: { job: DashboardJob | null }) {
   if (!job) {
     return (
-      <aside className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-950">İş Detayı</h2>
-        <p className="mt-4 text-sm leading-6 text-slate-500">
-          Detayları görmek için tablodan bir iş seçin.
-        </p>
-      </aside>
+      <Card className="rounded-lg border-slate-200 bg-white">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold text-slate-950">İş Detayı</CardTitle>
+          <CardDescription>Detayları görmek için tablodan bir iş seçin.</CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
 
   const cheapestPremium = getCheapestPremium(job.result);
 
   return (
-    <aside className="rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-5 py-4">
+    <Card className="rounded-lg border-slate-200 bg-white">
+      <CardHeader>
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-slate-950">İş Detayı</h2>
-            <p className="mt-1 text-sm text-slate-500">{job.id}</p>
+          <div className="min-w-0">
+            <CardTitle className="text-base font-semibold text-slate-950">İş Detayı</CardTitle>
+            <CardDescription className="mt-1 truncate text-xs">{job.id}</CardDescription>
           </div>
           <StatusBadge status={job.status} />
         </div>
-      </div>
+      </CardHeader>
+      <Separator />
 
-      <div className="space-y-5 p-5">
+      <CardContent className="space-y-5 pt-0">
         <dl className="grid grid-cols-1 gap-3 text-sm">
           <DetailRow label="Telefon" value={job.customerPhone || "-"} />
           <DetailRow label="Plaka" value={job.plate ?? "-"} />
@@ -270,12 +333,18 @@ function JobDetailPanel({ job }: { job: DashboardJob | null }) {
           <DetailRow label="Kaynak" value={sourceLabels[job.source] ?? job.source} />
         </dl>
 
+        <Separator />
+
         <div>
           <p className="text-sm font-semibold text-slate-950">Ham Mesaj</p>
-          <div className="mt-2 max-h-32 overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-700">
-            {job.rawMessage || "Ham mesaj yok."}
-          </div>
+          <ScrollArea className="mt-2 h-28 rounded-md border border-slate-200 bg-slate-50">
+            <div className="p-3 text-sm leading-6 text-slate-700">
+              {job.rawMessage || "Ham mesaj yok."}
+            </div>
+          </ScrollArea>
         </div>
+
+        <Separator />
 
         <div>
           <div className="flex items-center justify-between gap-3">
@@ -295,34 +364,36 @@ function JobDetailPanel({ job }: { job: DashboardJob | null }) {
                 const isCheapest = quote.premium === cheapestPremium;
 
                 return (
-                  <article
+                  <Card
                     key={`${quote.company}-${index}`}
                     className={
                       isCheapest
-                        ? "rounded-lg border border-emerald-300 bg-emerald-50 p-4"
-                        : "rounded-lg border border-slate-200 bg-white p-4"
+                        ? "rounded-lg border-emerald-300 bg-emerald-50"
+                        : "rounded-lg border-slate-200 bg-white"
                     }
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-slate-950">{quote.company}</p>
-                        {quote.description ? (
-                          <p className="mt-1 text-sm text-slate-600">{quote.description}</p>
-                        ) : null}
+                    <CardContent className="pt-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-950">{quote.company}</p>
+                          {quote.description ? (
+                            <p className="mt-1 text-sm text-slate-600">{quote.description}</p>
+                          ) : null}
+                        </div>
+                        {isCheapest ? <SoftBadge tone="green">En uygun</SoftBadge> : null}
                       </div>
-                      {isCheapest ? <SoftBadge tone="green">En uygun</SoftBadge> : null}
-                    </div>
-                    <p className="mt-3 text-2xl font-bold text-slate-950">
-                      {formatCurrency(quote.premium, quote.currency)}
-                    </p>
-                  </article>
+                      <p className="mt-3 text-2xl font-bold text-slate-950">
+                        {formatCurrency(quote.premium, quote.currency)}
+                      </p>
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>
           )}
         </div>
-      </div>
-    </aside>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -356,7 +427,7 @@ function SoftBadge({
   children,
   tone,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   tone: "neutral" | "green" | "orange" | "red" | "amber" | "blue";
 }) {
   const className = {
@@ -369,11 +440,9 @@ function SoftBadge({
   }[tone];
 
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}
-    >
+    <Badge variant="outline" className={className}>
       {children}
-    </span>
+    </Badge>
   );
 }
 

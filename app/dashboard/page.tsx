@@ -4,6 +4,7 @@ import {
   type TrafficJobResultRow,
   type TrafficJobRow,
 } from "@/lib/traffic-jobs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import DashboardClient, { type DashboardJob } from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -14,15 +15,20 @@ export default async function DashboardPage() {
   if (!result.ok) {
     return (
       <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-        <section className="mx-auto max-w-3xl rounded-lg border border-red-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold text-red-700">Veriler yüklenemedi.</p>
-          <h1 className="mt-2 text-xl font-bold text-slate-950">
-            Yerel trafik job kayıtları okunamadı
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
-            `.data` klasörü erişimini, yerel store dosyalarını ve ortam değişkenlerini kontrol edin.
-          </p>
-        </section>
+        <Card className="mx-auto max-w-3xl rounded-lg border-red-200 bg-white">
+          <CardHeader>
+            <p className="text-sm font-semibold text-red-700">Veriler yüklenemedi.</p>
+            <CardTitle className="text-xl font-bold text-slate-950">
+              Yerel trafik job kayıtları okunamadı
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm leading-6 text-slate-600">
+              `.data` klasörü erişimini, yerel store dosyalarını ve ortam değişkenlerini kontrol
+              edin.
+            </p>
+          </CardContent>
+        </Card>
       </main>
     );
   }
