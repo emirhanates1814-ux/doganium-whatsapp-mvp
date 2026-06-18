@@ -237,84 +237,34 @@ export default function DesktopClientPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: "8px",
-              width: "100%",
+              gridTemplateColumns: "repeat(3, 148px)",
+              gap: "10px",
+              justifyContent: "start",
+              alignItems: "center",
               maxWidth: "100%",
+              overflow: "visible",
             }}
           >
-            <button
-              type="button"
-              disabled={actionsDisabled}
-              onClick={selectExe}
-              data-testid="doganium-btn-select-exe"
-              style={{
-                width: "100%",
-                minWidth: 0,
-                height: 44,
-                borderRadius: 12,
-                border: "1px solid rgba(16, 185, 129, 0.32)",
-                background: "linear-gradient(135deg, #047857, #10b981)",
-                color: "#ecfdf5",
-                fontSize: 14,
-                fontWeight: 600,
-              }}
-            >
-              Exe
-            </button>
-            <button
-              type="button"
-              disabled={actionsDisabled}
-              onClick={saveSettings}
-              data-testid="doganium-btn-save"
-              style={{
-                width: "100%",
-                minWidth: 0,
-                height: 44,
-                borderRadius: 12,
-                border: "1px solid rgba(16, 185, 129, 0.32)",
-                background: "linear-gradient(135deg, #047857, #10b981)",
-                color: "#ecfdf5",
-                fontSize: 14,
-                fontWeight: 600,
-              }}
-            >
-              Kaydet
-            </button>
-            <button
-              type="button"
-              disabled={actionsDisabled}
-              onClick={testPath}
-              data-testid="doganium-btn-test-path"
-              style={{
-                width: "100%",
-                minWidth: 0,
-                height: 44,
-                borderRadius: 12,
-                border: "1px solid rgba(148, 163, 184, 0.24)",
-                background: "rgba(15, 23, 42, 0.92)",
-                color: "#f8fafc",
-                fontSize: 14,
-                fontWeight: 600,
-              }}
-            >
-              Test
-            </button>
             <button
               type="button"
               disabled={actionsDisabled}
               onClick={startDoganium}
               data-testid="doganium-btn-start"
               style={{
-                width: "100%",
-                minWidth: 0,
-                height: 44,
-                borderRadius: 12,
+                width: "148px",
+                minWidth: "148px",
+                maxWidth: "148px",
+                height: "44px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "14px",
+                fontSize: "13px",
+                fontWeight: 800,
+                whiteSpace: "normal",
                 border: "1px solid rgba(148, 163, 184, 0.24)",
                 background: "rgba(15, 23, 42, 0.92)",
                 color: "#f8fafc",
-                fontSize: 14,
-                fontWeight: 600,
               }}
             >
               Başlat
@@ -325,15 +275,20 @@ export default function DesktopClientPage() {
               onClick={checkDevTools}
               data-testid="doganium-btn-devtools"
               style={{
-                width: "100%",
-                minWidth: 0,
-                height: 44,
-                borderRadius: 12,
+                width: "148px",
+                minWidth: "148px",
+                maxWidth: "148px",
+                height: "44px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "14px",
+                fontSize: "13px",
+                fontWeight: 800,
+                whiteSpace: "normal",
                 border: "1px solid rgba(148, 163, 184, 0.24)",
                 background: "rgba(15, 23, 42, 0.92)",
                 color: "#f8fafc",
-                fontSize: 14,
-                fontWeight: 600,
               }}
             >
               DevTools
@@ -344,21 +299,99 @@ export default function DesktopClientPage() {
               onClick={startLogin}
               data-testid="doganium-btn-login"
               style={{
-                width: "100%",
-                minWidth: 0,
-                height: 44,
-                borderRadius: 12,
+                width: "148px",
+                minWidth: "148px",
+                maxWidth: "148px",
+                height: "44px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "14px",
+                fontSize: "13px",
+                fontWeight: 800,
+                whiteSpace: "normal",
                 border: "1px solid rgba(251, 191, 36, 0.28)",
                 background: "rgba(146, 64, 14, 0.78)",
                 color: "#fef3c7",
-                fontSize: 14,
-                fontWeight: 600,
               }}
             >
               Login/MFA
             </button>
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={selectExe}
+              data-testid="doganium-btn-select-exe"
+              style={{
+                width: "148px",
+                minWidth: "148px",
+                maxWidth: "148px",
+                height: "44px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "14px",
+                fontSize: "13px",
+                fontWeight: 800,
+                whiteSpace: "normal",
+                border: "1px solid rgba(16, 185, 129, 0.32)",
+                background: "linear-gradient(135deg, #047857, #10b981)",
+                color: "#ecfdf5",
+              }}
+            >
+              Exe
+            </button>
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={saveSettings}
+              data-testid="doganium-btn-save"
+              style={{
+                width: "148px",
+                minWidth: "148px",
+                maxWidth: "148px",
+                height: "44px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "14px",
+                fontSize: "13px",
+                fontWeight: 800,
+                whiteSpace: "normal",
+                border: "1px solid rgba(16, 185, 129, 0.32)",
+                background: "linear-gradient(135deg, #047857, #10b981)",
+                color: "#ecfdf5",
+              }}
+            >
+              Kaydet
+            </button>
+            <button
+              type="button"
+              disabled={actionsDisabled}
+              onClick={testPath}
+              data-testid="doganium-btn-test-path"
+              style={{
+                width: "148px",
+                minWidth: "148px",
+                maxWidth: "148px",
+                height: "44px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "14px",
+                fontSize: "13px",
+                fontWeight: 800,
+                whiteSpace: "normal",
+                border: "1px solid rgba(148, 163, 184, 0.24)",
+                background: "rgba(15, 23, 42, 0.92)",
+                color: "#f8fafc",
+              }}
+            >
+              Test
+            </button>
           </div>
-          <p className="ares-muted mt-2 text-xs">Komut paneli: native grid / 6 buton / 3 kolon</p>
+          <p className="ares-muted mt-2 text-xs">Komut paneli: sabit 3 kolon / 6 buton / taşma yok</p>
+          <p className="mt-1 text-xs font-semibold text-emerald-100/80">Akış sırası: Başlat → DevTools → Login/MFA</p>
           <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
             MFA ekranı görülürse doğrulama manuel yapılmalıdır. MVP akışı Doganium tam otomasyonunu beklemeden mock/manuel modda devam eder.
           </div>
