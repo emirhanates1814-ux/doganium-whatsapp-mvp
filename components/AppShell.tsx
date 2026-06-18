@@ -76,7 +76,7 @@ export default function AppShell({
                 Ares Yerel MVP
               </div>
               <p className="mt-1 text-xs leading-5 text-white/80">
-                Trafik teklif kuyruğu, sonuçlar ve Doganium hazırlığı.
+                Trafik teklif kuyruğu, mock/manuel sonuçlar ve MFA güvenli Doganium hazırlığı.
               </p>
             </div>
           </div>
@@ -147,7 +147,7 @@ export default function AppShell({
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span>Doganium</span>
-                <span className="font-semibold text-amber-100">IP Bekliyor</span>
+                <span className="font-semibold text-amber-100">MFA manuel</span>
               </div>
             </div>
           </div>

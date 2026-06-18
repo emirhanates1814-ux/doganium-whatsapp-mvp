@@ -94,7 +94,7 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
     <AppShell
       active="dashboard"
       title="Operasyon Paneli"
-      description="Ares Sigorta trafik teklif işlerini, yerel kuyruğu ve otomasyon hazırlığını tek ekrandan yönetin."
+      description="Ares Sigorta trafik teklif işlerini, yerel kuyruğu, mock/manuel sonuç akışını ve MFA güvenli Doganium hazırlığını tek ekrandan yönetin."
       badge="Local Desktop Mode"
       actions={
         <Button asChild variant="outline" size="lg" className="rounded-xl border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">
@@ -122,16 +122,16 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
               </Badge>
               <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-100 shadow-sm hover:bg-emerald-400/14">
                 <Sparkles className="mr-1 size-3.5" />
-                JSON/mock akışı hazır
+                Mock/manuel sonuç akışı hazır
               </Badge>
             </div>
             <div>
               <CardTitle className="ares-title text-3xl font-black lg:text-4xl">
-                Trafik Teklif Otomasyonu
+                Trafik Teklif MVP Operasyonu
               </CardTitle>
               <CardDescription className="ares-muted mt-2 max-w-3xl text-sm leading-6">
-                Bekleyen işleri izleyin, mock worker sonuçlarını kontrol edin ve en uygun teklifleri
-                hızlıca görün.
+                Bekleyen işleri izleyin, local queue durumunu takip edin ve Doganium MFA gerekiyorsa
+                manuel doğrulama adımıyla mock/manuel sonuç akışını sürdürün.
               </CardDescription>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -150,10 +150,10 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
               </div>
               <div>
                 <CardTitle className="text-base font-bold text-amber-100">
-                  Doganium erişimi bekliyor
+                  Manuel doğrulama gerekli olabilir
                 </CardTitle>
                 <CardDescription className="mt-1 text-sm leading-6 text-amber-200/80">
-                  Gerçek otomasyon için yetkili IP veya ofis makinesi gerekli.
+                  MFA/authenticator görülürse doğrulama operatör tarafından yapılır; tam otomatik PDF alma sonraki fazdır.
                 </CardDescription>
               </div>
             </div>
@@ -162,6 +162,8 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
       </motion.section>
 
       <OperationFlow summary={summary} />
+
+      <MvpReadinessPanel />
 
       <section className="grid min-w-0 grid-cols-12 gap-3">
         <SummaryCard label="Toplam İş" value={summary.total} tone="navy" helper="Son 50 kayıt" icon={FileText} index={0} />
@@ -202,8 +204,8 @@ function OperationFlow({ summary }: { summary: Summary }) {
   const stages = [
     { label: "Gelen İş", count: summary.total, icon: Inbox, active: true },
     { label: "Kuyruk", count: summary.pending, icon: List, active: summary.pending > 0 },
-    { label: "Doganium", count: summary.running + summary.waiting_mfa, icon: Cpu, active: summary.running + summary.waiting_mfa > 0, processing: summary.running > 0 },
-    { label: "Teklif", count: summary.completed, icon: FileText, active: summary.completed > 0 },
+    { label: "Yarı otomatik hazırlık", count: summary.running + summary.waiting_mfa, icon: Cpu, active: summary.running + summary.waiting_mfa > 0, processing: summary.running > 0 },
+    { label: "Mock/manuel sonuç", count: summary.completed, icon: FileText, active: summary.completed > 0 },
     { label: "WhatsApp", count: 0, icon: MessageCircle, active: false },
   ];
 
@@ -218,7 +220,7 @@ function OperationFlow({ summary }: { summary: Summary }) {
       <div className="relative mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Canlı İş Akışı</p>
-          <p className="ares-muted mt-1 text-sm">WhatsApp talebinden teklif sonucuna kadar yerel operasyon hattı.</p>
+          <p className="ares-muted mt-1 text-sm">WhatsApp talebinden mock/manuel teklif sonucuna kadar yerel operasyon hattı.</p>
         </div>
         <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
           Ares Operasyon Hattı
@@ -269,6 +271,63 @@ function OperationFlow({ summary }: { summary: Summary }) {
         })}
       </div>
     </motion.section>
+  );
+}
+
+function MvpReadinessPanel() {
+  const statusItems = [
+    { label: "Local queue", value: "Aktif", detail: "Yerel iş kuyruğu MVP akışını taşır.", tone: "green" },
+    { label: "Mock/manuel quote flow", value: "Aktif", detail: "Mock/manuel sonuç akışı hazır.", tone: "green" },
+    { label: "Doganium full automation", value: "Sonraki faz", detail: "Tam otomatik PDF alma Phase 2 kapsamındadır.", tone: "amber" },
+    { label: "MFA/manual verification", value: "Beklenen dış adım", detail: "MFA ekranında manuel doğrulama gerekli.", tone: "blue" },
+  ] as const;
+
+  const checklist = [
+    "İş kuyruğu",
+    "Sonuç görüntüleme",
+    "Ayarlar",
+    "Loglar",
+    "Doganium bağlantı kontrolü",
+    "EXE paketleme",
+  ];
+
+  return (
+    <section className="grid min-w-0 grid-cols-12 gap-4">
+      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-8">
+        <CardHeader className="p-4 pb-3">
+          <CardTitle className="ares-title text-base font-black">MVP Durumu</CardTitle>
+          <CardDescription className="ares-muted text-sm">
+            Doganium tam otomasyonu MVP için bloklayıcı değildir; MFA görülürse manuel doğrulama ile mock/manuel mod devam eder.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid min-w-0 gap-3 p-4 pt-0 md:grid-cols-4">
+          {statusItems.map((item) => (
+            <div key={item.label} className="ares-surface min-w-0 rounded-2xl p-3 shadow-md shadow-black/10">
+              <p className="ares-muted truncate text-xs font-bold uppercase">{item.label}</p>
+              <div className="mt-2">
+                <SoftBadge tone={item.tone}>{item.value}</SoftBadge>
+              </div>
+              <p className="ares-muted mt-2 text-xs leading-5">{item.detail}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-4">
+        <CardHeader className="p-4 pb-3">
+          <CardTitle className="ares-title text-base font-black">MVP Checklist</CardTitle>
+          <CardDescription className="ares-muted text-sm">Final stabilizasyon için izlenen küçük kapsam.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-2 p-4 pt-0">
+          {checklist.map((item) => (
+            <div key={item} className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2">
+              <CheckCircle2 className="size-4 shrink-0 text-emerald-300" />
+              <span className="truncate text-sm font-semibold text-slate-100">{item}</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 
@@ -327,8 +386,8 @@ function SystemStatusPanel() {
   const statuses = [
     { label: "Local Store", value: "Aktif", detail: "JSON varsayılan", tone: "green", icon: ShieldCheck },
     { label: "Prisma SQLite", value: "Opsiyonel", detail: "Worker bekliyor", tone: "neutral", icon: FileText },
-    { label: "Doganium", value: "IP bekleniyor", detail: "Ofis erişimi gerekli", tone: "orange", icon: AlertTriangle },
-    { label: "Mock Worker", value: "Hazır", detail: "JSON işleri tamamlar", tone: "green", icon: BadgeCheck },
+    { label: "Doganium", value: "Yarı otomatik hazırlık", detail: "MFA manuel doğrulanır", tone: "orange", icon: AlertTriangle },
+    { label: "Mock Worker", value: "Hazır", detail: "Mock/manuel sonuç akışı hazır", tone: "green", icon: BadgeCheck },
     { label: "WhatsApp", value: "Local test", detail: "Webhook yok", tone: "blue", icon: Car },
   ] as const;
 

@@ -2,6 +2,16 @@
 
 Bu dosya MVP icin onemli proje degisikliklerini ozetler. Tarihler repo gecmisindeki checkpoint ve mevcut calisma sirasina gore tutulur.
 
+## 2026-06-18
+
+### MVP Stabilizasyonu ve MFA Guvenli Doganium Hazirligi
+
+- Dashboard MVP durumunu netlestirdi: local queue aktif, mock/manuel quote flow aktif, Doganium full automation sonraki faz.
+- MFA/authenticator gerektiginde operatorun manuel dogrulama yapacagi belirtildi.
+- Doganium Teknik Paneli login aksiyonu tam otomatik giris vaadi yerine Login/MFA kontrolu olarak netlestirildi.
+- MVP checklist eklendi: is kuyrugu, sonuc goruntuleme, ayarlar, loglar, Doganium baglanti kontrolu ve EXE paketleme.
+- Doganium tam otomatik PDF alma ve MFA full automation Phase 2 olarak ayrildi.
+
 ## 2026-06-14
 
 ### Dokumantasyon ve Roadmap

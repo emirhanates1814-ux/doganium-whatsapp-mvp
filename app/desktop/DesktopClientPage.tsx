@@ -199,7 +199,7 @@ export default function DesktopClientPage() {
   }
 
   async function startLogin() {
-    await runAction("Login Başlat", (api) => api.startLogin());
+    await runAction("Login/MFA Kontrol", (api) => api.startLogin());
   }
 
   const actionsDisabled = !mounted || !hasDesktopApi || busy;
@@ -210,7 +210,7 @@ export default function DesktopClientPage() {
     <AppShell
       active="desktop"
       title="Doganium Teknik Paneli"
-      description="Kurulum, debug, DevTools ve login hazırlık kontrolleri. Günlük teklif operasyonu için Operasyon Paneli kullanılmalıdır."
+      description="Kurulum, debug, DevTools ve login/MFA hazırlık kontrolleri. Doganium MFA görülürse doğrulama manuel yapılır."
       badge="Teknik kontrol ekranı"
       actions={
         <div className="flex items-center gap-2">
@@ -227,7 +227,7 @@ export default function DesktopClientPage() {
             <div className="min-w-0">
               <CardTitle className="ares-title text-lg font-bold">Kalıcı komut paneli</CardTitle>
               <CardDescription className="ares-muted mt-1">
-                Ana aksiyonlar durum ve çıktı panellerinden bağımsız render edilir; sonuçlar yalnızca aşağıdaki durum/log alanlarına yazılır.
+                Ana aksiyonlar durum ve çıktı panellerinden bağımsız render edilir; Login/MFA kontrolü tam otomatik giriş garantisi değildir.
               </CardDescription>
             </div>
             <SoftBadge tone={busy ? "amber" : "neutral"}>{busy ? "İşlem sürüyor" : "Hazır"}</SoftBadge>
@@ -355,10 +355,13 @@ export default function DesktopClientPage() {
                 fontWeight: 600,
               }}
             >
-              Login
+              Login/MFA
             </button>
           </div>
           <p className="ares-muted mt-2 text-xs">Komut paneli: native grid / 6 buton / 3 kolon</p>
+          <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+            MFA ekranı görülürse doğrulama manuel yapılmalıdır. MVP akışı Doganium tam otomasyonunu beklemeden mock/manuel modda devam eder.
+          </div>
 
           <div className="mt-3 min-w-0 rounded-xl border border-[var(--ares-border)] bg-slate-950/35 px-3 py-2">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Son durum</p>
@@ -391,8 +394,8 @@ export default function DesktopClientPage() {
               Doganium otomasyon hazırlığı
             </CardTitle>
             <CardDescription className="ares-muted mt-2 max-w-3xl text-sm leading-6">
-              EXE yolu, Electron preload, DevTools portu ve login başlangıcı burada yönetilir.
-              Bu ekran günlük üretim akışı değil, teknik hazırlık ve debug alanıdır.
+              EXE yolu, Electron preload, DevTools portu ve Login/MFA kontrolü burada yönetilir.
+              Bu ekran günlük üretim akışı değil, yarı otomatik hazırlık ve debug alanıdır.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -405,10 +408,10 @@ export default function DesktopClientPage() {
               </div>
               <div>
                 <CardTitle className="text-base font-bold text-amber-100">
-                  Yetkili IP / ofis erişimi gerekli
+                  Manuel doğrulama gerekli olabilir
                 </CardTitle>
                 <CardDescription className="mt-1 text-sm leading-6 text-amber-200/80">
-                  Gerçek Doganium login ve otomasyon adımları yetkili ortam olmadan ilerletilmemelidir.
+                  MFA/authenticator ekranı görülürse operatör doğrular; tam otomatik PDF alma sonraki fazdır.
                 </CardDescription>
               </div>
             </div>

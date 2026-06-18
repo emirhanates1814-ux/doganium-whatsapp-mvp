@@ -2,6 +2,8 @@
 
 Hedef arayuz, Ares Sigorta operatorlerinin gunluk is takibi yapabilecegi temiz ve pratik bir sigorta otomasyon dashboard'idir. Pazarlama sitesi degil, operasyon merkezi gibi davranmalidir.
 
+MVP odagi local operation dashboard, yerel is kuyrugu, mock/manuel sonuc akisi ve MFA guvenli Doganium hazirligidir. Doganium MFA/authenticator veya tam otomatik PDF alma MVP blocker degildir; bu alan Phase 2 kapsaminda ele alinacaktir.
+
 ## Ana Dashboard
 
 Hedef:
@@ -9,6 +11,8 @@ Hedef:
 - Bekleyen, calisan, tamamlanan ve hata alan isleri hizli gostermek.
 - Son isleri taranabilir tabloyla sunmak.
 - Mock/local/Prisma modunu operatorun net gormesini saglamak.
+- Local queue aktif, mock/manuel quote flow aktif, Doganium full automation sonraki faz bilgisini net gostermek.
+- MFA/manual verification gerektiginde "Manuel dogrulama gerekli" mesajini acik gostermek.
 
 ## Status Card Plani
 
@@ -73,6 +77,8 @@ Gosterilecek durumlar:
 - Doganium DevTools baglanti durumu.
 - Login inspection sonucu.
 - Yetkili IP/ofis erisimi notu.
+- MFA gorulurse manuel dogrulama gerektigi.
+- Tam otomatik PDF alma sonraki faz notu.
 
 ## Logs Screen
 

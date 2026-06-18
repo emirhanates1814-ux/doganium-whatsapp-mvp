@@ -1,6 +1,6 @@
 # Roadmap
 
-Bu roadmap, Doganium WhatsApp trafik teklif otomasyonu MVP'sinde mevcut durumu ve siradaki isleri ayirir. Odak yerel Windows masaustu uygulamasi, yerel job queue, Doganium otomasyonu ve operator panelidir.
+Bu roadmap, Doganium WhatsApp trafik teklif otomasyonu MVP'sinde mevcut durumu ve siradaki isleri ayirir. MVP odagi yerel Windows masaustu uygulamasi, yerel job queue, mock/manuel sonuc akisi, Doganium baglanti kontrolu ve operator panelidir. Doganium MFA/full automation Phase 2 kapsamindadir.
 
 ## Milestone 0: Stabilized Desktop Foundation
 
@@ -20,6 +20,10 @@ Durum: Tamamlandi.
 - `/api/jobs/[id]/result` calisir.
 - Mock worker eklendi.
 - Dashboard yerel isleri okuyabilir.
+- Local queue aktif.
+- Mock/manuel quote flow aktif.
+- MFA/manual verification beklenen dis adim olarak kabul edildi.
+- Doganium full automation MVP blocker degil; sonraki faz.
 
 ## Milestone 2: Optional Prisma + SQLite Store
 
@@ -82,14 +86,15 @@ Durum: Planlandi.
 - Cloudflare Tunnel, ngrok veya relay secenekleri degerlendirilecek.
 - Client tarafinda secret tutulmayacak.
 
-## Milestone 8: Real Doganium Worker
+## Milestone 8: Phase 2 - Real Doganium Worker and MFA Automation
 
-Durum: Doganium erisimi bekliyor.
+Durum: Phase 2 / MVP sonrasi.
 
 - Ofis/IP erisimi gerekiyor.
 - Yerel queue'dan is calistirilacak.
-- MFA/manual checkpoint akisi ele alinacak.
+- MFA/authenticator checkpoint akisi tam otomasyona tasinacak.
 - EGM/Trafik/PDF otomasyonu tamamlanacak.
+- Tam otomatik PDF alma MVP kapsami disinda tutuldu.
 
 ## Milestone 9: Desktop EXE Packaging
 
