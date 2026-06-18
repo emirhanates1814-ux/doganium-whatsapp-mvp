@@ -18,6 +18,10 @@ prisma/dev.db
 .desktop/
 *.pid
 logs/
+!app/logs/
+!app/logs/**
+!app/api/logs/
+!app/api/logs/**
 
 worker/.venv/
 worker/settings.json

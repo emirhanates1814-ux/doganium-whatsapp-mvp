@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import {
   Activity,
@@ -18,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 type AppShellProps = {
-  active: "dashboard" | "desktop";
+  active: "dashboard" | "desktop" | "logs";
   title: string;
   description: string;
   badge?: string;
@@ -31,7 +32,7 @@ const navItems = [
   { label: "Doganium Teknik Paneli", href: "/desktop", key: "desktop", enabled: true, icon: Wrench },
   { label: "İşler", href: "#", key: "jobs", enabled: false, icon: ClipboardList },
   { label: "Sonuçlar", href: "#", key: "results", enabled: false, icon: FileText },
-  { label: "Loglar", href: "#", key: "logs", enabled: false, icon: History },
+  { label: "Loglar", href: "/logs", key: "logs", enabled: true, icon: History },
   { label: "Ayarlar", href: "#", key: "settings", enabled: false, icon: Settings },
 ] as const;
 
@@ -104,10 +105,10 @@ export default function AppShell({
                       : "h-11 w-full justify-start gap-3 rounded-2xl px-3 text-sm font-medium text-emerald-50/78 hover:bg-white/10 hover:text-white"
                   }
                 >
-                  <a href={item.href}>
+                  <Link href={item.href}>
                     <Icon className="size-4" />
                     <span className="truncate">{item.label}</span>
-                  </a>
+                  </Link>
                 </Button>
               </motion.div>
             ) : (
@@ -179,6 +180,14 @@ export default function AppShell({
                   className="rounded-lg"
                 >
                   <a href="/desktop">Doganium Teknik Paneli</a>
+                </Button>
+                <Button
+                  asChild
+                  variant={active === "logs" ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-lg"
+                >
+                  <Link href="/logs">Loglar</Link>
                 </Button>
               </div>
               <div className="mt-3 flex min-w-0 flex-wrap items-center gap-3 lg:mt-0">

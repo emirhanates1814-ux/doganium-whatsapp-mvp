@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSafeErrorMessage } from "@/lib/env";
+import { appendRuntimeLog } from "@/lib/runtime-log";
 import { createTrafficJob, isTrafficJobStatus, listTrafficJobs } from "@/lib/traffic-jobs";
 import { normalizeTrafficInput, parseTrafficMessage } from "@/lib/traffic-parser";
 
@@ -57,6 +58,15 @@ export async function POST(request: NextRequest) {
       .map(([field]) => field);
 
     if (missingFields.length > 0) {
+      await appendRuntimeLog({
+        level: "warning",
+        source: getRuntimeSource(body.source),
+        plate: normalized.plate,
+        title: "Talep eksik bilgiyle reddedildi",
+        message: "Trafik işi oluşturulamadı; zorunlu alanlar eksik.",
+        meta: { missingFields, source: body.source ?? "manual" },
+      });
+
       return NextResponse.json(
         {
           ok: false,
@@ -79,18 +89,67 @@ export async function POST(request: NextRequest) {
       status: "pending",
     });
 
+    if (result.ok) {
+      await appendRuntimeLog({
+        level: "success",
+        source: getRuntimeSource(result.data.source),
+        jobId: result.data.id,
+        plate: result.data.plate,
+        title: "Yerel trafik işi oluşturuldu",
+        message: `${getSourceLabel(result.data.source)} kaynağından gelen talep yerel kuyruğa eklendi.`,
+        meta: {
+          source: result.data.source,
+          status: result.data.status,
+        },
+      });
+    } else {
+      await appendRuntimeLog({
+        level: "error",
+        source: getRuntimeSource(body.source),
+        plate: normalized.plate,
+        title: "Trafik işi oluşturulamadı",
+        message: result.error,
+        meta: { source: body.source ?? "manual" },
+      });
+    }
+
     return NextResponse.json(result, { status: result.ok ? 201 : 500 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      await appendRuntimeLog({
+        level: "warning",
+        source: "system",
+        title: "Geçersiz trafik işi isteği",
+        message: "API, şema doğrulamasından geçmeyen iş oluşturma isteğini reddetti.",
+        meta: { fields: Object.keys(error.flatten().fieldErrors) },
+      });
       return NextResponse.json(
         { ok: false, error: "Invalid job payload.", details: error.flatten() },
         { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { ok: false, error: getSafeErrorMessage(error) },
-      { status: 500 },
-    );
+    const message = getSafeErrorMessage(error);
+    await appendRuntimeLog({
+      level: "error",
+      source: "system",
+      title: "Trafik işi API hatası",
+      message,
+    });
+
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
+}
+
+function getSourceLabel(source: string) {
+  if (source === "whatsapp") return "WhatsApp";
+  if (source === "website") return "Web sitesi";
+  if (source === "test") return "Test/yedek";
+  return "Manuel/yedek";
+}
+
+function getRuntimeSource(source: unknown): "whatsapp" | "website" | "dashboard" {
+  if (source === "whatsapp") return "whatsapp";
+  if (source === "website") return "website";
+  return "dashboard";
 }

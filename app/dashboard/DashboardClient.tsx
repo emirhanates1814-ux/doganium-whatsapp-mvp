@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -10,6 +11,7 @@ import {
   CheckCircle2,
   Clock3,
   Cpu,
+  Download,
   FileText,
   Hourglass,
   Inbox,
@@ -80,6 +82,17 @@ type ManualQuoteFormState = {
   markCompleted: boolean;
 };
 
+type RuntimeLogEvent = {
+  id: string;
+  ts: string;
+  level: "info" | "success" | "warning" | "error";
+  source: string;
+  jobId?: string;
+  plate?: string;
+  title: string;
+  message: string;
+};
+
 type Summary = {
   total: number;
   pending: number;
@@ -135,7 +148,18 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
     setSelectedJobId(null);
   };
   const startTopAutomation = () => {
-    setTopAutomationNotice("Phase 1.5: Doganium bağlantı/MFA kontrolü hazır. Trafik sorgu ve PDF alma adımları sıradaki iş.");
+    setTopAutomationNotice("Phase 1.5: Doganium bağlantı/MFA hazırlığı mevcut. Trafik sorgu ve PDF alma adımları tamamlandığında canlı akış burada gösterilecek.");
+    void postClientLog({
+      level: "info",
+      source: "dashboard",
+      jobId: activeRequest?.id,
+      plate: activeRequest?.plate,
+      title: "Otomasyonu Başlat tıklandı",
+      message: activeRequest
+        ? "Operator seçili talep için otomasyon hazırlığını başlattı."
+        : "Operator otomasyon başlatmayı denedi; seçili talep yok.",
+      meta: { phase: "1.5" },
+    });
   };
   const createMvpTestJob = async () => {
     setCreatingTestJob(true);
@@ -156,10 +180,22 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
           source: "test",
         }),
       });
-      const result = await response.json() as { ok?: boolean; data?: DashboardJob; error?: string };
+      const result = await response.json() as {
+        ok?: boolean;
+        data?: DashboardJob;
+        error?: string;
+        details?: { missingFields?: string[] };
+      };
 
       if (!response.ok || !result.ok || !result.data) {
-        throw new Error(result.error || "Test işi oluşturulamadı.");
+        const missingFields = result.details?.missingFields ?? [];
+        throw new Error(
+          missingFields.length > 0
+            ? `Zorunlu alanlar eksik veya hatalı: ${missingFields.map(getRequiredFieldLabel).join(", ")}.`
+            : result.error === "Traffic job is missing required fields."
+              ? "Zorunlu alanlar eksik veya hatalı."
+              : result.error || "Test işi oluşturulamadı.",
+        );
       }
 
       setCreatedTestJob({
@@ -292,6 +328,8 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
         onStart={startTopAutomation}
       />
 
+      <LiveOperationLogsPanel compact />
+
       <OperationFlow summary={summary} />
 
       <section className="grid min-w-0 grid-cols-12 gap-3">
@@ -358,19 +396,10 @@ function SelectedRequestAutomationPanel({
 }) {
   const readinessItems = request ? buildReadinessItems(request) : [];
   const ready = request ? readinessItems.every((item) => item.ready) : false;
-  const steps = [
-    "Talep alındı",
-    "Bilgiler doğrulandı",
-    "Doganium başlat",
-    "Login/MFA kontrolü",
-    "Trafik sorgusu",
-    "Teklif/PDF sonucu",
-    "WhatsApp mesajı",
-  ];
 
   return (
     <section className="grid min-w-0 grid-cols-12 gap-4">
-      <Card className="ares-panel-strong col-span-12 min-w-0 overflow-hidden rounded-3xl border-emerald-300/20 shadow-2xl shadow-black/25 xl:col-span-5">
+      <Card className="ares-panel-strong col-span-12 min-w-0 overflow-hidden rounded-3xl border-emerald-300/20 shadow-2xl shadow-black/25 xl:col-span-8">
         <CardHeader className="border-b border-[var(--ares-border)] p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -425,26 +454,22 @@ function SelectedRequestAutomationPanel({
         </CardContent>
       </Card>
 
-      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-7">
-        <CardHeader className="border-b border-[var(--ares-border)] p-5">
+      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl border-white/10 shadow-lg shadow-black/12 xl:col-span-4">
+        <CardHeader className="border-b border-[var(--ares-border)] p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="ares-title text-xl font-black">Doganium Otomasyon Akışı</CardTitle>
-              <CardDescription className="ares-muted text-sm">
-                Phase 1.5: Doganium bağlantı/MFA kontrolü hazır. Trafik sorgu ve PDF alma adımları sıradaki iş.
+              <CardTitle className="ares-title text-base font-black">Otomasyon Durumu</CardTitle>
+              <CardDescription className="ares-muted mt-1 text-sm leading-6">
+                Phase 1.5: Doganium bağlantı/MFA hazırlığı mevcut. Trafik sorgu ve PDF alma adımları tamamlandığında canlı akış burada gösterilecek.
               </CardDescription>
             </div>
             <SoftBadge tone="amber">Phase 1.5</SoftBadge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3 p-5">
-          <div className="grid gap-2 md:grid-cols-7">
-            {steps.map((step, index) => (
-              <div key={step} className="min-w-0 rounded-2xl border border-white/10 bg-slate-950/40 p-3">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-400/10 text-xs font-black text-emerald-200">{index + 1}</span>
-                <p className="mt-2 text-xs font-bold leading-5 text-slate-200">{step}</p>
-              </div>
-            ))}
+        <CardContent className="space-y-3 p-4">
+          <div className="rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Canlı akış</p>
+            <p className="ares-muted mt-1 text-sm">Henüz trafik/PDF otomasyonu canlı olarak gösterilmiyor.</p>
           </div>
           {notice ? (
             <p className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">{notice}</p>
@@ -452,6 +477,107 @@ function SelectedRequestAutomationPanel({
         </CardContent>
       </Card>
     </section>
+  );
+}
+
+function LiveOperationLogsPanel({ compact = false }: { compact?: boolean }) {
+  const [events, setEvents] = useState<RuntimeLogEvent[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string>("");
+
+  const loadLogs = async () => {
+    try {
+      const response = await fetch(`/api/logs?limit=${compact ? 10 : 100}`, { cache: "no-store" });
+      const result = await response.json() as { ok?: boolean; events?: RuntimeLogEvent[] };
+      if (result.ok && Array.isArray(result.events)) {
+        setEvents(result.events);
+        setLastUpdated(new Date().toLocaleTimeString("tr-TR"));
+      }
+    } catch {
+      // Keep existing events visible if polling fails.
+    }
+  };
+
+  useEffect(() => {
+    void loadLogs();
+    const timer = window.setInterval(() => void loadLogs(), 1000);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <Card className="ares-panel min-w-0 overflow-hidden rounded-3xl shadow-xl shadow-black/15">
+      <CardHeader className="border-b border-[var(--ares-border)] p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="ares-title text-base font-black">Canlı Operasyon Logları</CardTitle>
+            <CardDescription className="ares-muted text-sm">
+              Gelen talep, job, Doganium/MFA, teklif sonucu ve mesaj hazırlama olayları. Gizli bilgiler loglanmaz.
+            </CardDescription>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {lastUpdated ? <span className="ares-muted text-xs">Son güncelleme {lastUpdated}</span> : null}
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl border-white/15 bg-white/[0.06] px-3 text-xs text-white hover:bg-white/10 hover:text-white"
+            >
+              <Link href="/logs">Tüm loglar</Link>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 rounded-xl border-white/15 bg-white/[0.06] px-3 text-xs text-white hover:bg-white/10 hover:text-white"
+              onClick={() => void loadLogs()}
+            >
+              <RefreshCcw className="mr-1 size-3.5" />
+              Yenile
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4">
+        {events.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">
+            Henüz operasyon logu yok.
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            {events.slice(0, compact ? 10 : 100).map((event) => (
+              <LogEventRow key={event.id} event={event} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function LogEventRow({ event }: { event: RuntimeLogEvent }) {
+  const tone =
+    event.level === "error"
+      ? "border-rose-400/25 bg-rose-400/10"
+      : event.level === "warning"
+        ? "border-amber-400/25 bg-amber-400/10"
+        : event.level === "success"
+          ? "border-emerald-400/20 bg-emerald-400/10"
+          : "border-white/10 bg-white/[0.04]";
+
+  return (
+    <div className={`min-w-0 rounded-2xl border px-3 py-2 ${tone}`}>
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-slate-400">{formatLogTime(event.ts)}</span>
+        <SoftBadge tone={event.level === "error" ? "red" : event.level === "warning" ? "amber" : event.level === "success" ? "green" : "neutral"}>
+          {event.level}
+        </SoftBadge>
+        <span className="rounded-full border border-white/10 bg-slate-950/45 px-2 py-0.5 text-xs font-bold text-slate-200">{event.source}</span>
+        {event.plate ? <span className="text-xs font-bold text-emerald-100">{event.plate}</span> : null}
+      </div>
+      <p className="mt-1 truncate text-sm font-bold text-slate-100">{event.title}</p>
+      <p className="mt-0.5 text-xs leading-5 text-slate-400">{event.message}</p>
+      {event.jobId ? <p className="mt-1 truncate font-mono text-[11px] text-slate-500">Job: {event.jobId}</p> : null}
+    </div>
   );
 }
 
@@ -1067,6 +1193,15 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
     if (!cheapestOffer) return;
     const message = buildWhatsappMessage(cheapestOffer);
     setWhatsappMessage(message);
+    void postClientLog({
+      level: "success",
+      source: "whatsapp_message",
+      jobId: job.id,
+      plate: job.plate,
+      title: "WhatsApp-ready mesaj hazırlandı",
+      message: "Tamamlanan talep için kopyalanabilir WhatsApp mesajı üretildi.",
+      meta: { company: cheapestOffer.company, premium: cheapestOffer.premium, currency: cheapestOffer.currency },
+    });
     try {
       await navigator.clipboard?.writeText(message);
     } catch {
@@ -1074,7 +1209,16 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
     }
   };
   const startAutomation = () => {
-    setAutomationNotice("Phase 1.5: Doganium bağlantı/MFA kontrolü hazır. Trafik sorgu ve PDF alma adımları sıradaki iş.");
+    setAutomationNotice("Phase 1.5: Doganium bağlantı/MFA hazırlığı mevcut. Trafik sorgu ve PDF alma adımları tamamlandığında canlı akış burada gösterilecek.");
+    void postClientLog({
+      level: "info",
+      source: "dashboard",
+      jobId: job.id,
+      plate: job.plate,
+      title: "Otomasyonu Başlat tıklandı",
+      message: "Operator talep detayından otomasyon hazırlığını başlattı.",
+      meta: { phase: "1.5" },
+    });
   };
 
   return (
@@ -1159,9 +1303,9 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
           <section className="space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-bold text-slate-100">Doganium Otomasyon Akışı</p>
+                <p className="text-sm font-bold text-slate-100">Otomasyon Durumu</p>
                 <p className="ares-muted mt-1 text-xs">
-                  Phase 1.5: Doganium bağlantı/MFA kontrolü hazır. Trafik sorgu ve PDF alma adımları sıradaki iş.
+                  Phase 1.5: Doganium bağlantı/MFA hazırlığı mevcut. Trafik sorgu ve PDF alma adımları tamamlandığında canlı akış burada gösterilecek.
                 </p>
               </div>
               <SoftBadge tone="amber">Phase 1.5</SoftBadge>
@@ -1173,13 +1317,9 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
             >
               Otomasyonu Başlat
             </Button>
-            <div className="grid gap-2">
-              {["Talep alındı", "Bilgiler doğrulandı", "Doganium başlat", "Login/MFA kontrolü", "Trafik sorgusu", "Teklif/PDF sonucu", "WhatsApp mesajı"].map((step, index) => (
-                <div key={step} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-200">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-xs font-black text-emerald-200">{index + 1}</span>
-                  <span className="font-semibold">{step}</span>
-                </div>
-              ))}
+            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Canlı akış</p>
+              <p className="ares-muted mt-1 text-sm">Doganium trafik sorgu/PDF alma tamamlandığında adım takibi burada açılacak.</p>
             </div>
             {automationNotice ? (
               <p className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">{automationNotice}</p>
@@ -1245,7 +1385,23 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
                             <div className="min-w-0">
                               <p className="truncate font-bold text-slate-100">{quote.company}</p>
                               {quote.description ? <p className="mt-1 text-sm text-slate-400">{quote.description}</p> : null}
-                              {quote.pdfPath ? <p className="mt-1 break-all text-xs text-slate-500">Dosya: {quote.pdfPath}</p> : null}
+                              <div className="mt-2">
+                                {quote.pdfPath ? (
+                                  <Button
+                                    asChild
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 rounded-lg border-emerald-400/25 bg-emerald-400/10 px-2.5 text-xs font-bold text-emerald-100 hover:bg-emerald-400/15 hover:text-white"
+                                  >
+                                    <Link href={`/api/jobs/${encodeURIComponent(job.id)}/pdf?quoteIndex=${index}`}>
+                                      <Download className="mr-1.5 size-3.5" />
+                                      PDF İndir
+                                    </Link>
+                                  </Button>
+                                ) : (
+                                  <p className="text-xs text-slate-500">PDF henüz yok</p>
+                                )}
+                              </div>
                               {quote.note && quote.note !== quote.description ? <p className="mt-1 text-xs text-slate-500">Not: {quote.note}</p> : null}
                             </div>
                             {isCheapest ? <SoftBadge tone="green">En uygun teklif</SoftBadge> : null}
@@ -1258,6 +1414,9 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
                     </motion.div>
                   );
                 })}
+                <p className="text-xs leading-5 text-slate-500">
+                  PDF indirme altyapısı hazırdır; Doganium otomatik PDF alma Phase 2’de tamamlanacaktır.
+                </p>
               </div>
             )}
           </section>
@@ -1385,6 +1544,17 @@ function normalizeSource(source: unknown): TrafficJobSource {
   return "test";
 }
 
+function getRequiredFieldLabel(field: string) {
+  const labels: Record<string, string> = {
+    tckn: "TCKN",
+    plate: "plaka",
+    documentSerial: "belge seri no",
+    birthDate: "doğum tarihi",
+  };
+
+  return labels[field] ?? field;
+}
+
 function getSourceLabel(source: unknown) {
   return sourceLabels[normalizeSource(source)];
 }
@@ -1500,6 +1670,32 @@ function getCheapestOffer(result: DashboardJobResult | null) {
 
 function buildWhatsappMessage(quote: TrafficJobResultPayload["quotes"][number]) {
   return `Merhaba, trafik sigortası teklifiniz hazır. En uygun teklif: ${quote.company} - ${formatWhatsappPremium(quote.premium, quote.currency)}. Detay için bizimle iletişime geçebilirsiniz.`;
+}
+
+async function postClientLog(input: {
+  level: RuntimeLogEvent["level"];
+  source: RuntimeLogEvent["source"];
+  jobId?: string | null;
+  plate?: string | null;
+  title: string;
+  message: string;
+  meta?: Record<string, unknown>;
+}) {
+  try {
+    await fetch("/api/logs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  } catch {
+    // Logging should not block the operator workflow.
+  }
+}
+
+function formatLogTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--:--:--";
+  return date.toLocaleTimeString("tr-TR");
 }
 
 function formatWhatsappPremium(value: number, currency: string) {

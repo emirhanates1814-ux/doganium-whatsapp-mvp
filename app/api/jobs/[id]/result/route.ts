@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSafeErrorMessage } from "@/lib/env";
+import { appendRuntimeLog } from "@/lib/runtime-log";
 import {
+  getTrafficJob,
   getTrafficJobResult,
   saveTrafficJobResult,
   updateTrafficJobStatus,
@@ -37,9 +39,15 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  let jobId: string | undefined;
+  let plate: string | undefined;
+
   try {
     const { id } = await context.params;
+    jobId = id;
     const body = resultSchema.parse(await request.json());
+    const job = await getTrafficJob(id);
+    plate = job.ok ? job.data?.plate ?? undefined : undefined;
     const result = await saveTrafficJobResult(id, {
       quotes: body.quotes,
       cheapestPremium: body.cheapestPremium,
@@ -48,30 +56,85 @@ export async function POST(
     });
 
     if (!result.ok) {
+      await appendRuntimeLog({
+        level: "error",
+        source: "quote",
+        jobId: id,
+        plate,
+        title: "Teklif sonucu kaydedilemedi",
+        message: result.error,
+      });
       return NextResponse.json(result, { status: 500 });
     }
+
+    await appendRuntimeLog({
+      level: "success",
+      source: "quote",
+      jobId: id,
+      plate,
+      title: "Teklif sonucu kaydedildi",
+      message: `${body.quotes.length} teklif yerel sonuç kaydına yazıldı.`,
+      meta: {
+        quoteCount: body.quotes.length,
+        cheapestPremium: body.cheapestPremium,
+        highestPremium: body.highestPremium,
+      },
+    });
 
     if (body.markCompleted) {
       const statusResult = await updateTrafficJobStatus(id, "completed");
 
       if (!statusResult.ok) {
+        await appendRuntimeLog({
+          level: "error",
+          source: "quote",
+          jobId: id,
+          plate,
+          title: "İş tamamlandı durumuna alınamadı",
+          message: statusResult.error,
+        });
         return NextResponse.json(statusResult, { status: 500 });
       }
+
+      await appendRuntimeLog({
+        level: "success",
+        source: "worker",
+        jobId: id,
+        plate,
+        title: "Yerel iş tamamlandı",
+        message: "Teklif sonucu hazırlandı ve iş tamamlandı durumuna alındı.",
+      });
     }
 
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      await appendRuntimeLog({
+        level: "warning",
+        source: "quote",
+        jobId,
+        plate,
+        title: "Geçersiz teklif sonucu isteği",
+        message: "API, şema doğrulamasından geçmeyen teklif sonucu isteğini reddetti.",
+        meta: { fields: Object.keys(error.flatten().fieldErrors) },
+      });
       return NextResponse.json(
         { ok: false, error: "Invalid result payload.", details: error.flatten() },
         { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { ok: false, error: getSafeErrorMessage(error) },
-      { status: 500 },
-    );
+    const message = getSafeErrorMessage(error);
+    await appendRuntimeLog({
+      level: "error",
+      source: "quote",
+      jobId,
+      plate,
+      title: "Teklif sonucu API hatası",
+      message,
+    });
+
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
 

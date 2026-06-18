@@ -12,6 +12,7 @@ Bu dosya MVP icin onemli proje degisikliklerini ozetler. Tarihler repo gecmisind
 - Explicitly documented: if future changes make manual entry the primary workflow, reject that change.
 - Dashboard wording aligned with locked workflow: `Gelen Talepler`, `Otomasyona Hazır`, `Otomasyonu Başlat`, and manual/test forms demoted to fallback.
 - Dashboard first screen now prioritizes `Seçili Talep` and the primary `Otomasyonu Başlat` CTA; test/fallback tools moved below the main automation area.
+- Demoted unfinished automation timeline to compact status indicator.
 
 ### MVP Stabilizasyonu ve MFA Guvenli Doganium Hazirligi
 
@@ -66,3 +67,10 @@ Bu dosya MVP icin onemli proje degisikliklerini ozetler. Tarihler repo gecmisind
 - Electron masaustu temeli yeniden duzenlendi.
 - Next.js local app ile Electron shell birlikte calisacak hale getirildi.
 - Masaustu gelistirme akisi stabilize edildi.
+## Live Operation Logs
+
+- Added live in-app operation logs backed by local JSONL event stream.
+- Fixed Logs page navigation and active sidebar state.
+- Added level, source, Job ID, and plate filters to the live Logs viewer.
+- Fixed Job ID sanitization so internal IDs are not phone-masked.
+- Prepared safe local quote PDF download infrastructure and mock PDF fixtures; automatic Doganium PDF retrieval remains Phase 2.
