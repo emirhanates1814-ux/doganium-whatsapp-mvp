@@ -22,6 +22,9 @@ Durum: Tamamlandi.
 - Dashboard yerel isleri okuyabilir.
 - Local queue aktif.
 - Mock/manuel quote flow aktif.
+- Dashboard uzerinden yeni trafik isi olusturma aktif.
+- Manuel teklif ekleme, result store'a kaydetme ve isi tamamlandi yapma aktif.
+- Tamamlanan is icin kopyalanabilir WhatsApp mesaj hazirlama aktif.
 - MFA/manual verification beklenen dis adim olarak kabul edildi.
 - Doganium full automation MVP blocker degil; sonraki faz.
 

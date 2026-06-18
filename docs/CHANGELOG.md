@@ -11,6 +11,9 @@ Bu dosya MVP icin onemli proje degisikliklerini ozetler. Tarihler repo gecmisind
 - Doganium Teknik Paneli login aksiyonu tam otomatik giris vaadi yerine Login/MFA kontrolu olarak netlestirildi.
 - MVP checklist eklendi: is kuyrugu, sonuc goruntuleme, ayarlar, loglar, Doganium baglanti kontrolu ve EXE paketleme.
 - Doganium tam otomatik PDF alma ve MFA full automation Phase 2 olarak ayrildi.
+- Dashboard'a gercek lokal `Yeni Trafik İşi` formu eklendi.
+- Secili is detayinda `Manuel Teklif Ekle` akisi eklendi; teklifler yerel result API/store uzerinden kaydedilir ve is tamamlanmis olarak isaretlenebilir.
+- Tamamlanan isler icin en uygun/en yuksek teklif, sirket sayisi ve kopyalanabilir WhatsApp mesaj hazirlama akisi eklendi.
 
 ## 2026-06-14
 

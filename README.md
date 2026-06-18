@@ -14,7 +14,8 @@ Tamamlanan ana parcalar:
 - `.data/` altinda varsayilan JSON is deposu.
 - `/api/jobs` ve `/api/jobs/[id]/result` yerel store ile calisir.
 - `worker/mock_doganium_worker.py` JSON store islerini mock sonuc ile tamamlayabilir.
-- Dashboard yerel isleri okuyabilir.
+- Dashboard yerel isleri okuyabilir, yeni trafik isi olusturabilir ve manuel teklif sonucu kaydedebilir.
+- Tamamlanan is icin kopyalanabilir WhatsApp mesaj metni hazirlanabilir.
 - Opsiyonel Prisma + SQLite store eklendi.
 - `LOCAL_STORE_DRIVER=prisma` ile Prisma store is olusturma/listeleme yapabilir.
 
@@ -106,6 +107,19 @@ python .\worker\mock_doganium_worker.py
 5. Dashboard'u yenileyin, olusan isi secin ve teklif sonucunu goruntuleyin.
 
 Bu akis Doganium PDF otomasyonunun tamamlandigini iddia etmez; MFA/manual verification beklenen dis adimdir.
+
+## Manuel MVP Trafik Teklif Akisi
+
+Dashboard uzerinden gercek lokal MVP operasyonu:
+
+1. `Yeni Trafik İşi` kartinda telefon, plaka, TCKN, belge seri no, dogum tarihi ve ham mesaj/not alanlarini doldurun.
+2. `Yeni Trafik İşi Oluştur` ile isi yerel kuyruğa ekleyin.
+3. Islem kuyrugundan isi secin.
+4. `Manuel Teklif Ekle` bolumunde sigorta sirketi, prim tutari, para birimi, opsiyonel PDF/dosya yolu ve not girin.
+5. `Kaydedince işi tamamlandı yap` seciliyse kayit sonrasi is `completed` olur.
+6. Tamamlanan iste `WhatsApp Mesajı Hazırla` ile kopyalanabilir Turkce mesaj uretin.
+
+WhatsApp gonderimi henuz yapilmaz; yalnizca operatorun kopyalayabilecegi metin hazirlanir.
 
 ## JSON Store Test Isi Olusturma
 

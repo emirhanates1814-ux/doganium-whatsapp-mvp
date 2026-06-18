@@ -72,6 +72,8 @@ export type TrafficJobResultQuote = {
   premium: number;
   currency: "TRY" | string;
   description?: string | null;
+  pdfPath?: string | null;
+  note?: string | null;
 };
 
 export type TrafficJobResultPayload = {

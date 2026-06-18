@@ -12,6 +12,8 @@ const quoteSchema = z.object({
   premium: z.number().nonnegative(),
   currency: z.string().min(1).default("TRY"),
   description: z.string().optional(),
+  pdfPath: z.string().optional().nullable(),
+  note: z.string().optional().nullable(),
 });
 
 const resultSchema = z.object({

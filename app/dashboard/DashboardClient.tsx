@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
   AlertTriangle,
@@ -57,7 +58,26 @@ type CreatedTestJobState = {
   id: string;
   plate: string;
   status: TrafficJobRow["status"];
+  createdAt?: string;
   nextStep: string;
+};
+
+type NewTrafficJobFormState = {
+  customerPhone: string;
+  plate: string;
+  tckn: string;
+  documentSerial: string;
+  birthDate: string;
+  rawMessage: string;
+};
+
+type ManualQuoteFormState = {
+  company: string;
+  premium: string;
+  currency: string;
+  pdfPath: string;
+  note: string;
+  markCompleted: boolean;
 };
 
 type Summary = {
@@ -87,10 +107,22 @@ const sourceLabels: Record<TrafficJobRow["source"], string> = {
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
 export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
+  const router = useRouter();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [createdTestJob, setCreatedTestJob] = useState<CreatedTestJobState | null>(null);
   const [createJobError, setCreateJobError] = useState<string | null>(null);
   const [creatingTestJob, setCreatingTestJob] = useState(false);
+  const [newJob, setNewJob] = useState<NewTrafficJobFormState>({
+    customerPhone: "",
+    plate: "",
+    tckn: "",
+    documentSerial: "",
+    birthDate: "",
+    rawMessage: "",
+  });
+  const [createdManualJob, setCreatedManualJob] = useState<CreatedTestJobState | null>(null);
+  const [manualJobError, setManualJobError] = useState<string | null>(null);
+  const [creatingManualJob, setCreatingManualJob] = useState(false);
   const selectedJob = selectedJobId ? jobs.find((job) => job.id === selectedJobId) ?? null : null;
   const summary = useMemo(() => buildSummary(jobs), [jobs]);
   const openJobDetail = (jobId: string) => {
@@ -127,12 +159,52 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
         id: result.data.id,
         plate: result.data.plate ?? "34MYZ039",
         status: result.data.status,
+        createdAt: result.data.createdAt,
         nextStep: "Mock Worker Çalıştır komutunu çalıştırın, sonra dashboard'u yenileyip sonucu görüntüleyin.",
       });
+      router.refresh();
     } catch (error) {
       setCreateJobError(error instanceof Error ? error.message : String(error));
     } finally {
       setCreatingTestJob(false);
+    }
+  };
+  const createManualTrafficJob = async () => {
+    setCreatingManualJob(true);
+    setManualJobError(null);
+
+    try {
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newJob),
+      });
+      const result = await response.json() as { ok?: boolean; data?: DashboardJob; error?: string };
+
+      if (!response.ok || !result.ok || !result.data) {
+        throw new Error(result.error || "Trafik işi oluşturulamadı.");
+      }
+
+      setCreatedManualJob({
+        id: result.data.id,
+        plate: result.data.plate ?? newJob.plate,
+        status: result.data.status,
+        createdAt: result.data.createdAt,
+        nextStep: "İşi seçip Manuel Teklif Ekle bölümünden teklif sonucunu girin.",
+      });
+      setNewJob({
+        customerPhone: "",
+        plate: "",
+        tckn: "",
+        documentSerial: "",
+        birthDate: "",
+        rawMessage: "",
+      });
+      router.refresh();
+    } catch (error) {
+      setManualJobError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCreatingManualJob(false);
     }
   };
 
@@ -214,6 +286,15 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
         createJobError={createJobError}
         creatingTestJob={creatingTestJob}
         onCreateTestJob={createMvpTestJob}
+      />
+
+      <NewTrafficJobPanel
+        form={newJob}
+        createdJob={createdManualJob}
+        error={manualJobError}
+        submitting={creatingManualJob}
+        onChange={setNewJob}
+        onSubmit={createManualTrafficJob}
       />
 
       <section className="grid min-w-0 grid-cols-12 gap-3">
@@ -434,6 +515,93 @@ function MvpReadinessPanel({
         </CardContent>
       </Card>
     </section>
+  );
+}
+
+function NewTrafficJobPanel({
+  form,
+  createdJob,
+  error,
+  submitting,
+  onChange,
+  onSubmit,
+}: {
+  form: NewTrafficJobFormState;
+  createdJob: CreatedTestJobState | null;
+  error: string | null;
+  submitting: boolean;
+  onChange: (value: NewTrafficJobFormState) => void;
+  onSubmit: () => void;
+}) {
+  const update = (field: keyof NewTrafficJobFormState, value: string) => {
+    onChange({ ...form, [field]: value });
+  };
+
+  return (
+    <Card className="ares-panel min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18">
+      <CardHeader className="border-b border-[var(--ares-border)] p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="ares-title text-lg font-black">Yeni Trafik İşi</CardTitle>
+            <CardDescription className="ares-muted text-sm">
+              Gerçek MVP akışı için yerel kuyruğa manuel trafik teklif işi ekleyin.
+            </CardDescription>
+          </div>
+          <SoftBadge tone="green">Local queue</SoftBadge>
+        </div>
+      </CardHeader>
+      <CardContent className="grid min-w-0 gap-4 p-5 lg:grid-cols-12">
+        <div className="grid min-w-0 gap-3 lg:col-span-8 md:grid-cols-2">
+          <FormField label="Telefon" value={form.customerPhone} onChange={(value) => update("customerPhone", value)} placeholder="905xxxxxxxxx" />
+          <FormField label="Plaka" value={form.plate} onChange={(value) => update("plate", value.toUpperCase())} placeholder="34ABC123" />
+          <FormField label="TCKN" value={form.tckn} onChange={(value) => update("tckn", value)} placeholder="11 hane" />
+          <FormField label="Belge seri no" value={form.documentSerial} onChange={(value) => update("documentSerial", value.toUpperCase())} placeholder="HV689268" />
+          <FormField label="Doğum tarihi" value={form.birthDate} onChange={(value) => update("birthDate", value)} placeholder="25.02.2000" />
+          <div className="min-w-0 md:col-span-2">
+            <label className="ares-muted block text-sm font-bold">Ham mesaj / not</label>
+            <textarea
+              value={form.rawMessage}
+              onChange={(event) => update("rawMessage", event.target.value)}
+              className="ares-input mt-2 min-h-24 w-full rounded-xl px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[var(--ares-green)] focus:ring-4 focus:ring-emerald-500/10"
+              placeholder="Müşteri mesajı veya operatör notu"
+            />
+          </div>
+        </div>
+
+        <div className="grid content-start gap-3 lg:col-span-4">
+          <Button
+            type="button"
+            onClick={onSubmit}
+            disabled={submitting}
+            className="h-11 rounded-2xl bg-emerald-500 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
+          >
+            {submitting ? "İş oluşturuluyor..." : "Yeni Trafik İşi Oluştur"}
+          </Button>
+
+          {createdJob ? (
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold text-emerald-100">İş oluşturuldu</p>
+                <SoftBadge tone="green">{getStatusLabel(createdJob.status)}</SoftBadge>
+              </div>
+              <dl className="mt-3 grid gap-2 text-xs text-slate-200">
+                <InfoRow label="Job ID" value={createdJob.id} monospace />
+                <InfoRow label="Plaka" value={createdJob.plate} />
+                <InfoRow label="Durum" value={getStatusLabel(createdJob.status)} />
+                <InfoRow label="Oluşturma" value={createdJob.createdAt ? formatDate(createdJob.createdAt) : "-"} />
+              </dl>
+              <p className="mt-3 text-xs leading-5 text-emerald-50/80">{createdJob.nextStep}</p>
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-3 text-sm font-semibold text-rose-100">
+              {error}
+            </div>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -671,6 +839,20 @@ function NoSelectedJobHint({ hasJobs }: { hasJobs: boolean }) {
 }
 
 function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: () => void }) {
+  const router = useRouter();
+  const [manualQuote, setManualQuote] = useState<ManualQuoteFormState>({
+    company: "",
+    premium: "",
+    currency: "TRY",
+    pdfPath: "",
+    note: "",
+    markCompleted: true,
+  });
+  const [manualQuoteError, setManualQuoteError] = useState<string | null>(null);
+  const [manualQuoteSuccess, setManualQuoteSuccess] = useState<string | null>(null);
+  const [savingManualQuote, setSavingManualQuote] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState("");
+
   if (!job) {
     return (
       <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18, ease: easeOut }}>
@@ -690,6 +872,77 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
   const cheapestOffer = getCheapestOffer(job.result);
   const companyCount = job.result?.quotes.length ?? 0;
   const shortId = job.id.length > 12 ? `${job.id.slice(0, 8)}...${job.id.slice(-4)}` : job.id;
+  const canPrepareWhatsapp = job.status === "completed" && !!cheapestOffer;
+  const updateManualQuote = (field: keyof ManualQuoteFormState, value: string | boolean) => {
+    setManualQuote((current) => ({ ...current, [field]: value }));
+  };
+  const saveManualQuote = async () => {
+    setSavingManualQuote(true);
+    setManualQuoteError(null);
+    setManualQuoteSuccess(null);
+
+    try {
+      const premium = Number(manualQuote.premium.replace(",", "."));
+      if (!manualQuote.company.trim()) throw new Error("Sigorta şirketi zorunludur.");
+      if (!Number.isFinite(premium) || premium < 0) throw new Error("Prim tutarı geçerli bir sayı olmalıdır.");
+
+      const existingQuotes = job.result?.quotes ?? [];
+      const nextQuotes = [
+        ...existingQuotes,
+        {
+          company: manualQuote.company.trim(),
+          premium,
+          currency: manualQuote.currency.trim() || "TRY",
+          description: manualQuote.note.trim() || null,
+          pdfPath: manualQuote.pdfPath.trim() || null,
+          note: manualQuote.note.trim() || null,
+        },
+      ];
+      const cheapest = Math.min(...nextQuotes.map((quote) => quote.premium));
+      const highest = Math.max(...nextQuotes.map((quote) => quote.premium));
+      const response = await fetch(`/api/jobs/${job.id}/result`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quotes: nextQuotes,
+          cheapestPremium: cheapest,
+          highestPremium: highest,
+          summary: `${nextQuotes.length} manuel/mock teklif kaydı`,
+          markCompleted: manualQuote.markCompleted,
+        }),
+      });
+      const result = await response.json() as { ok?: boolean; error?: string };
+
+      if (!response.ok || !result.ok) {
+        throw new Error(result.error || "Manuel teklif kaydedilemedi.");
+      }
+
+      setManualQuote({
+        company: "",
+        premium: "",
+        currency: "TRY",
+        pdfPath: "",
+        note: "",
+        markCompleted: true,
+      });
+      setManualQuoteSuccess("Manuel teklif kaydedildi. Dashboard yenileniyor.");
+      router.refresh();
+    } catch (error) {
+      setManualQuoteError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSavingManualQuote(false);
+    }
+  };
+  const prepareWhatsappMessage = async () => {
+    if (!cheapestOffer) return;
+    const message = buildWhatsappMessage(cheapestOffer);
+    setWhatsappMessage(message);
+    try {
+      await navigator.clipboard?.writeText(message);
+    } catch {
+      // Copy is best effort; the textarea still shows the message.
+    }
+  };
 
   return (
     <>
@@ -810,6 +1063,8 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
                             <div className="min-w-0">
                               <p className="truncate font-bold text-slate-100">{quote.company}</p>
                               {quote.description ? <p className="mt-1 text-sm text-slate-400">{quote.description}</p> : null}
+                              {quote.pdfPath ? <p className="mt-1 break-all text-xs text-slate-500">Dosya: {quote.pdfPath}</p> : null}
+                              {quote.note && quote.note !== quote.description ? <p className="mt-1 text-xs text-slate-500">Not: {quote.note}</p> : null}
                             </div>
                             {isCheapest ? <SoftBadge tone="green">En uygun teklif</SoftBadge> : null}
                           </div>
@@ -824,10 +1079,113 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
               </div>
             )}
           </section>
+
+          <Separator />
+
+          <section className="space-y-3">
+            <div>
+              <p className="text-sm font-bold text-slate-100">Manuel Teklif Ekle</p>
+              <p className="ares-muted mt-1 text-xs">Doganium/PDF otomasyonu beklemeden manuel veya mock teklif sonucu kaydedin.</p>
+            </div>
+            <div className="grid gap-3">
+              <FormField label="Sigorta şirketi" value={manualQuote.company} onChange={(value) => updateManualQuote("company", value)} placeholder="Örn. QUICK" />
+              <FormField label="Prim tutarı" value={manualQuote.premium} onChange={(value) => updateManualQuote("premium", value)} placeholder="12500" />
+              <FormField label="Para birimi" value={manualQuote.currency} onChange={(value) => updateManualQuote("currency", value.toUpperCase())} placeholder="TRY" />
+              <FormField label="PDF/dosya yolu" value={manualQuote.pdfPath} onChange={(value) => updateManualQuote("pdfPath", value)} placeholder="Opsiyonel" />
+              <div className="min-w-0">
+                <label className="ares-muted block text-sm font-bold">Not</label>
+                <textarea
+                  value={manualQuote.note}
+                  onChange={(event) => updateManualQuote("note", event.target.value)}
+                  className="ares-input mt-2 min-h-20 w-full rounded-xl px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[var(--ares-green)] focus:ring-4 focus:ring-emerald-500/10"
+                  placeholder="Opsiyonel teklif notu"
+                />
+              </div>
+              <label className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2 text-sm font-semibold text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={manualQuote.markCompleted}
+                  onChange={(event) => updateManualQuote("markCompleted", event.target.checked)}
+                  className="size-4 accent-emerald-500"
+                />
+                Kaydedince işi tamamlandı yap
+              </label>
+              <Button
+                type="button"
+                onClick={saveManualQuote}
+                disabled={savingManualQuote}
+                className="h-11 rounded-2xl bg-emerald-500 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
+              >
+                {savingManualQuote ? "Teklif kaydediliyor..." : "Manuel Teklif Kaydet"}
+              </Button>
+              {manualQuoteSuccess ? <p className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm font-semibold text-emerald-100">{manualQuoteSuccess}</p> : null}
+              {manualQuoteError ? <p className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-3 text-sm font-semibold text-rose-100">{manualQuoteError}</p> : null}
+            </div>
+          </section>
+
+          <Separator />
+
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-slate-100">WhatsApp Mesajı Hazırla</p>
+                <p className="ares-muted mt-1 text-xs">Mesaj sadece hazırlanır; WhatsApp gönderimi yapılmaz.</p>
+              </div>
+              <SoftBadge tone={canPrepareWhatsapp ? "green" : "neutral"}>{canPrepareWhatsapp ? "Hazır" : "Sonuç bekliyor"}</SoftBadge>
+            </div>
+            <Button
+              type="button"
+              onClick={prepareWhatsappMessage}
+              disabled={!canPrepareWhatsapp}
+              variant="outline"
+              className="h-10 w-full rounded-2xl border-emerald-400/25 bg-emerald-400/10 text-sm font-bold text-emerald-100 hover:bg-emerald-400/16 hover:text-white"
+            >
+              WhatsApp Mesajını Hazırla
+            </Button>
+            <textarea
+              readOnly
+              value={whatsappMessage}
+              className="ares-input min-h-24 w-full rounded-xl px-3 py-3 text-sm leading-6 shadow-sm outline-none"
+              placeholder="Tamamlanan iş için mesaj burada hazırlanır."
+            />
+          </section>
         </CardContent>
       </Card>
       </motion.aside>
     </>
+  );
+}
+
+function FormField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <label className="ares-muted block text-sm font-bold">{label}</label>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="ares-input mt-2 w-full min-w-0 rounded-xl px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[var(--ares-green)] focus:ring-4 focus:ring-emerald-500/10"
+      />
+    </div>
+  );
+}
+
+function InfoRow({ label, value, monospace = false }: { label: string; value: string; monospace?: boolean }) {
+  return (
+    <div className="flex min-w-0 justify-between gap-3">
+      <dt className="text-slate-400">{label}</dt>
+      <dd className={monospace ? "truncate font-mono" : "truncate font-bold"}>{value}</dd>
+    </div>
   );
 }
 
@@ -928,6 +1286,15 @@ function getHighestPremium(result: DashboardJobResult | null) {
 function getCheapestOffer(result: DashboardJobResult | null) {
   if (!result?.quotes.length) return null;
   return result.quotes.reduce((best, quote) => (quote.premium < best.premium ? quote : best), result.quotes[0]);
+}
+
+function buildWhatsappMessage(quote: TrafficJobResultPayload["quotes"][number]) {
+  return `Merhaba, trafik sigortası teklifiniz hazır. En uygun teklif: ${quote.company} - ${formatWhatsappPremium(quote.premium, quote.currency)}. Detay için bizimle iletişime geçebilirsiniz.`;
+}
+
+function formatWhatsappPremium(value: number, currency: string) {
+  const amount = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 2 }).format(value);
+  return currency === "TRY" ? `${amount} TL` : `${amount} ${currency}`;
 }
 
 function formatDate(value: string) {
