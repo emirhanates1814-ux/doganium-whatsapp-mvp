@@ -1,6 +1,8 @@
 # Roadmap
 
-Bu roadmap, Doganium WhatsApp trafik teklif otomasyonu MVP'sinde mevcut durumu ve siradaki isleri ayirir. MVP odagi yerel Windows masaustu uygulamasi, yerel job queue, mock/manuel sonuc akisi, Doganium baglanti kontrolu ve operator panelidir. Doganium MFA/full automation Phase 2 kapsamindadir.
+Bu roadmap, Doganium WhatsApp trafik teklif otomasyonu MVP'sinde mevcut durumu ve siradaki isleri ayirir. Kilit urun yonu inbound WhatsApp/web form automation first'tur. Manuel musteri girisi ve manuel teklif girisi sadece fallback/test/operator override olarak kalir. Doganium MFA/full PDF automation Phase 2 kapsamindadir.
+
+If future changes make manual entry the primary workflow, reject that change.
 
 ## Milestone 0: Stabilized Desktop Foundation
 
@@ -11,22 +13,30 @@ Durum: Tamamlandi.
 - Doganium DevTools bridge eklendi.
 - Login inspection flow eklendi.
 
-## Milestone 1: Local Job Queue MVP
+## Phase 1: Inbound Request Queue MVP
 
-Durum: Tamamlandi.
+Durum: Aktif MVP kapsami.
 
-- Yerel JSON store eklendi.
-- `/api/jobs` calisir.
-- `/api/jobs/[id]/result` calisir.
-- Mock worker eklendi.
-- Dashboard yerel isleri okuyabilir.
-- Local queue aktif.
-- Mock/manuel quote flow aktif.
-- Dashboard uzerinden yeni trafik isi olusturma aktif.
-- Manuel teklif ekleme, result store'a kaydetme ve isi tamamlandi yapma aktif.
-- Tamamlanan is icin kopyalanabilir WhatsApp mesaj hazirlama aktif.
-- MFA/manual verification beklenen dis adim olarak kabul edildi.
-- Doganium full automation MVP blocker degil; sonraki faz.
+- Inbound request queue.
+- WhatsApp/web form intake contract.
+- Parser/normalizer ile musteri verisini otomatik job'a donusturme.
+- Local job/result storage.
+- Dashboard monitoring: `Gelen Talepler`, durumlar, sonuc goruntuleme.
+- Manual/test fallback only.
+- Doganium MFA-safe preparation.
+- WhatsApp-ready mesaj hazirlama; otomatik gonderim yok.
+
+Not: Dashboard uzerinden manuel trafik isi veya manuel teklif ekleme, ana workflow degil fallback/test/operator override'dir.
+
+## Phase 1.5: Doganium Continuation Preparation
+
+Durum: Planlandi.
+
+- Doganium target inspection.
+- Post-MFA continuation.
+- Traffic portal selector mapping.
+- Doganium ekran checkpoint'leri.
+- Worker'in MFA sonrasi otomasyona devam etmesi.
 
 ## Milestone 2: Optional Prisma + SQLite Store
 
@@ -89,15 +99,15 @@ Durum: Planlandi.
 - Cloudflare Tunnel, ngrok veya relay secenekleri degerlendirilecek.
 - Client tarafinda secret tutulmayacak.
 
-## Milestone 8: Phase 2 - Real Doganium Worker and MFA Automation
+## Phase 2: Full Doganium Traffic/PDF Automation
 
 Durum: Phase 2 / MVP sonrasi.
 
-- Ofis/IP erisimi gerekiyor.
-- Yerel queue'dan is calistirilacak.
-- MFA/authenticator checkpoint akisi tam otomasyona tasinacak.
-- EGM/Trafik/PDF otomasyonu tamamlanacak.
-- Tam otomatik PDF alma MVP kapsami disinda tutuldu.
+- Full Doganium traffic/PDF automation.
+- EGM/Trafik/PDF sonuc toplama.
+- Automatic WhatsApp send.
+- Production relay/webhook deployment if needed.
+- MFA/authenticator checkpoint sonrasi otomasyon devam edebilir hale gelecek.
 
 ## Milestone 9: Desktop EXE Packaging
 

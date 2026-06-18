@@ -4,6 +4,13 @@ Bu dosya MVP icin onemli proje degisikliklerini ozetler. Tarihler repo gecmisind
 
 ## 2026-06-18
 
+### Product Direction Lock
+
+- Locked product direction: inbound WhatsApp/web form automation first, manual entry fallback only.
+- Added `docs/WORKFLOW_LOCK.md` and `docs/GOAL.md`.
+- Clarified that Operasyon Paneli is the daily screen and Doganium Teknik Paneli is setup/debug only.
+- Explicitly documented: if future changes make manual entry the primary workflow, reject that change.
+
 ### MVP Stabilizasyonu ve MFA Guvenli Doganium Hazirligi
 
 - Dashboard MVP durumunu netlestirdi: local queue aktif, mock/manuel quote flow aktif, Doganium full automation sonraki faz.

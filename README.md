@@ -1,6 +1,25 @@
 # Doganium WhatsApp Trafik Teklif Otomasyonu MVP
 
-Doganium WhatsApp MVP, Ares Sigorta icin yerel Windows masaustu ortaminda calisan trafik sigortasi teklif otomasyonu prototipidir. Amac; teklif islerini almak veya elle olusturmak, yerelde saklamak, yetkili ofis/IP makinesinde Doganium otomasyonunu calistirmak, sonuc durumunu panelde izlemek ve ileride teklif ozetini WhatsApp uzerinden musteriye dondurmektir.
+Doganium WhatsApp MVP, Ares Sigorta icin yerel Windows masaustu ortaminda calisan trafik sigortasi teklif otomasyonu prototipidir. Amac; WhatsApp ve Ares Sigorta web/lead formundan gelen talepleri otomatik almak, yerelde trafik teklif isine donusturmek, yetkili ofis/IP makinesinde Doganium otomasyonunu calistirmak, sonuc durumunu panelde izlemek ve ileride teklif ozetini WhatsApp uzerinden musteriye dondurmektir.
+
+## Locked MVP Direction
+
+Kilit urun akisi:
+
+1. Musteri bilgiyi WhatsApp veya Ares Sigorta web/lead formu ile gonderir.
+2. Sistem bilgiyi otomatik parse eder veya formdan alir.
+3. Sistem local traffic quote job olusturur.
+4. Operator gelen talep kuyrugunu Operasyon Paneli'nde gorur.
+5. Operator `Otomasyonu Başlat` aksiyonunu kullanir veya ileriki fazda sistem otomatik baslatir.
+6. Doganium worker Doganium'u baslatir/kullanir.
+7. MFA gerekirse operator yalnizca MFA/security checkpoint'i tamamlar.
+8. Otomasyon MFA sonrasi devam eder.
+9. Trafik teklif/PDF sonuclari kaydedilir.
+10. WhatsApp-ready mesaj uretilir; otomatik gonderim sonraki fazdir.
+
+Normal kullanimda manuel musteri girisi yoktur. WhatsApp ve Ares Sigorta web/lead formu canonical input sources olarak kabul edilir. Manuel/test formlari sadece fallback, smoke test ve operator override icindir.
+
+If future changes make manual entry the primary workflow, reject that change.
 
 ## Mevcut Durum
 
@@ -14,7 +33,7 @@ Tamamlanan ana parcalar:
 - `.data/` altinda varsayilan JSON is deposu.
 - `/api/jobs` ve `/api/jobs/[id]/result` yerel store ile calisir.
 - `worker/mock_doganium_worker.py` JSON store islerini mock sonuc ile tamamlayabilir.
-- Dashboard yerel isleri okuyabilir, yeni trafik isi olusturabilir ve manuel teklif sonucu kaydedebilir.
+- Dashboard yerel isleri okuyabilir; manuel/test fallback ile trafik isi veya teklif sonucu kaydedebilir.
 - Tamamlanan is icin kopyalanabilir WhatsApp mesaj metni hazirlanabilir.
 - Opsiyonel Prisma + SQLite store eklendi.
 - `LOCAL_STORE_DRIVER=prisma` ile Prisma store is olusturma/listeleme yapabilir.
@@ -28,7 +47,7 @@ Henuz tamamlanmayan ana parcalar:
 
 ## Ana Ozellikler
 
-- Yerel trafik teklif isi olusturma.
+- WhatsApp/web form kaynakli trafik teklif isi olusturma.
 - JSON dosya tabanli varsayilan job queue.
 - Opsiyonel Prisma + SQLite job store.
 - Mock worker ile offline test akisi.
@@ -108,9 +127,9 @@ python .\worker\mock_doganium_worker.py
 
 Bu akis Doganium PDF otomasyonunun tamamlandigini iddia etmez; MFA/manual verification beklenen dis adimdir.
 
-## Manuel MVP Trafik Teklif Akisi
+## Manuel/Test Fallback Trafik Teklif Akisi
 
-Dashboard uzerinden gercek lokal MVP operasyonu:
+Bu akis ana urun akisi degildir. Sadece test, smoke, demo ve operator override icindir.
 
 1. `Yeni Trafik İşi` kartinda telefon, plaka, TCKN, belge seri no, dogum tarihi ve ham mesaj/not alanlarini doldurun.
 2. `Yeni Trafik İşi Oluştur` ile isi yerel kuyruğa ekleyin.
@@ -218,6 +237,8 @@ http://127.0.0.1:3000/desktop
 ## Dokumanlar
 
 - [Roadmap](docs/ROADMAP.md)
+- [Workflow Lock](docs/WORKFLOW_LOCK.md)
+- [Product Goal](docs/GOAL.md)
 - [Mimari](docs/ARCHITECTURE.md)
 - [Yerel Gelistirme](docs/LOCAL_DEVELOPMENT.md)
 - [Doganium Otomasyonu](docs/DOGANIUM_AUTOMATION.md)

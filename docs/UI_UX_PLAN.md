@@ -1,8 +1,12 @@
 # UI/UX Plani
 
-Hedef arayuz, Ares Sigorta operatorlerinin gunluk is takibi yapabilecegi temiz ve pratik bir sigorta otomasyon dashboard'idir. Pazarlama sitesi degil, operasyon merkezi gibi davranmalidir.
+Hedef arayuz, Ares Sigorta operatorlerinin inbound WhatsApp ve web form taleplerini takip edebilecegi temiz ve pratik bir sigorta otomasyon dashboard'idir. Pazarlama sitesi degil, operasyon merkezi gibi davranmalidir.
 
-MVP odagi local operation dashboard, yerel is kuyrugu, mock/manuel sonuc akisi ve MFA guvenli Doganium hazirligidir. Doganium MFA/authenticator veya tam otomatik PDF alma MVP blocker degildir; bu alan Phase 2 kapsaminda ele alinacaktir.
+MVP odagi local operation dashboard, inbound request queue, WhatsApp/web form intake contract, yerel is kuyrugu ve MFA guvenli Doganium hazirligidir. Doganium MFA/authenticator veya tam otomatik PDF alma MVP blocker degildir; bu alan Phase 2 kapsaminda ele alinacaktir.
+
+Normal kullanim manuel musteri girisi degildir. Manuel form test/fallback/operator override olarak gosterilmeli ve ana workflow gibi sunulmamalidir.
+
+If future changes make manual entry the primary workflow, reject that change.
 
 ## Ana Dashboard
 
@@ -11,8 +15,11 @@ Hedef:
 - Bekleyen, calisan, tamamlanan ve hata alan isleri hizli gostermek.
 - Son isleri taranabilir tabloyla sunmak.
 - Mock/local/Prisma modunu operatorun net gormesini saglamak.
-- Local queue aktif, mock/manuel quote flow aktif, Doganium full automation sonraki faz bilgisini net gostermek.
+- Ana dil `Gelen Talepler` ve `Otomasyonu Baslat` olmalidir.
+- Local queue aktif, inbound WhatsApp/web form akisi hedef, Doganium full automation sonraki faz bilgisini net gostermek.
 - MFA/manual verification gerektiginde "Manuel dogrulama gerekli" mesajini acik gostermek.
+- Manual form varsa ikincil kart olmali ve `Test/Fallback` olarak etiketlenmelidir.
+- Doganium Teknik Paneli gunluk workflow olarak sunulmamalidir; setup/debug ekranidir.
 
 ## Status Card Plani
 
@@ -37,6 +44,8 @@ Tablo kolonlari:
 - Durum.
 - Son guncelleme.
 - Kisa aksiyon.
+- Ana aksiyon: `Otomasyonu Baslat`.
+- Kaynak dili: WhatsApp, Web Form, Test/Fallback.
 
 Tablo filtreleri:
 
@@ -55,6 +64,8 @@ Panelde gorunecekler:
 - Durum gecmisi.
 - Sonuc varsa teklif kartlari.
 - Hata varsa operator icin net hata mesaji.
+- Doganium MFA checkpoint gerekiyorsa operatorun yalnizca MFA tamamlayacagi anlatilmalidir.
+- Manual teklif girisi varsa fallback/operator override olarak ayrilmalidir.
 
 ## Result Cards
 
@@ -104,6 +115,14 @@ Planlanan ayarlar:
 - WhatsApp test ayarlari.
 
 Secret alanlari client tarafinda duz metin olarak gosterilmemelidir.
+
+## Manual/Fallback UI Rules
+
+- Manual customer entry primary CTA olamaz.
+- Manual quote entry primary product language olamaz.
+- Manual alanlar `Test/Fallback` veya `Operator override` etiketi tasimalidir.
+- Operasyon Paneli'nin ana dili inbound talepler ve otomasyon baslatma uzerine kurulmalidir.
+- Doganium Teknik Paneli setup/debug olarak kalmalidir.
 
 ## Tasarim Yonu
 
