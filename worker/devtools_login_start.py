@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import socket
 import struct
 import sys
@@ -14,12 +15,33 @@ from urllib.parse import urlparse
 
 
 JsonDict = Dict[str, Any]
+EMAIL_RE = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
+PHONE_RE = re.compile(r"(?<!\d)(?:\+?\d[\s().-]?){9,}\d(?!\d)")
+TOKEN_RE = re.compile(r"(?i)\b(?:token|secret|password|pass|auth|otp|code)=([^&\s]+)")
 
 
 def emit(payload: JsonDict, exit_code: int = 0) -> None:
+    payload = redact_sensitive_strings(payload)
     sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2))
     sys.stdout.write("\n")
     raise SystemExit(exit_code)
+
+
+def redact_sensitive_text(value: str) -> str:
+    value = EMAIL_RE.sub("[MASKED]", value)
+    value = PHONE_RE.sub("[MASKED]", value)
+    value = TOKEN_RE.sub(lambda match: match.group(0).split("=", 1)[0] + "=[MASKED]", value)
+    return value
+
+
+def redact_sensitive_strings(value: Any) -> Any:
+    if isinstance(value, str):
+        return redact_sensitive_text(value)
+    if isinstance(value, list):
+        return [redact_sensitive_strings(item) for item in value]
+    if isinstance(value, dict):
+        return {key: redact_sensitive_strings(item) for key, item in value.items()}
+    return value
 
 
 def project_root() -> str:
@@ -280,24 +302,53 @@ INSPECT_EXPRESSION = r"""
     const rect = el.getBoundingClientRect();
     return style && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || '1') > 0 && rect.width > 0 && rect.height > 0;
   };
-  const elementData = (el) => ({
-    tagName: el.tagName,
-    type: el.getAttribute('type') || '',
-    id: el.id || '',
-    name: el.getAttribute('name') || '',
-    placeholder: el.getAttribute('placeholder') || '',
-    ariaLabel: el.getAttribute('aria-label') || '',
-    innerText: (el.innerText || el.value || '').slice(0, 120),
-    className: typeof el.className === 'string' ? el.className : '',
-    isVisible: visible(el)
-  });
+  const sensitivePattern = /email|password|pass|auth|code|otp|token|secret|phone|tel/i;
+  const attr = (el, name) => el.getAttribute(name) || '';
+  const isSensitiveInput = (el) => {
+    const tag = el.tagName.toLowerCase();
+    const haystack = [attr(el, 'type'), el.id || '', attr(el, 'name'), attr(el, 'placeholder'), attr(el, 'aria-label')].join(' ');
+    return ['input', 'select', 'textarea'].includes(tag) && sensitivePattern.test(haystack);
+  };
+  const elementData = (el) => {
+    const sensitive = isSensitiveInput(el);
+    return {
+      tagName: el.tagName,
+      type: attr(el, 'type'),
+      id: el.id || '',
+      name: attr(el, 'name'),
+      placeholder: attr(el, 'placeholder'),
+      ariaLabel: attr(el, 'aria-label'),
+      innerText: sensitive ? '[MASKED]' : (el.innerText || el.value || '').slice(0, 120),
+      className: typeof el.className === 'string' ? el.className : '',
+      isVisible: visible(el)
+    };
+  };
   const elements = Array.from(document.querySelectorAll('input, button, a')).map(elementData);
   const bodyText = (document.body && document.body.innerText || '').toLowerCase();
+  const visibleInputs = Array.from(document.querySelectorAll('input')).filter(visible);
+  const visibleButtons = Array.from(document.querySelectorAll('button, input[type=button], input[type=submit]')).filter(visible);
+  const hasPassword = visibleInputs.some((el) => (el.type || '').toLowerCase() === 'password');
+  const hasLoginInput = visibleInputs.some((el) => /user|kullan|email|e-?posta|mail|login/.test([
+    el.type || '',
+    el.id || '',
+    el.name || '',
+    el.placeholder || '',
+    el.getAttribute('aria-label') || ''
+  ].join(' ').toLowerCase()));
+  const hasMfaInput = visibleInputs.some((el) => /authcode|auth|code|otp/.test([
+    el.id || '',
+    el.name || ''
+  ].join(' ').toLowerCase()));
+  const hasMfaButton = visibleButtons.some((el) => /doğrulama|dogrulama/.test([
+    el.innerText || '',
+    el.value || ''
+  ].join(' ').toLocaleLowerCase('tr-TR')));
   return {
     title: document.title,
     url: location.href,
     elements,
-    mfaDetected: /otp|mfa|authenticator|google authenticator|doğrulama|dogrulama|kod|code/.test(bodyText)
+    mfaDetected: hasMfaInput || hasMfaButton || /otp|mfa|authenticator|google authenticator|doğrulama|dogrulama|kod|code/.test(bodyText),
+    loginFormVisible: hasPassword && hasLoginInput
   };
 })()
 """
@@ -345,8 +396,9 @@ def login_expression(username: str, password: str) -> str:
     return true;
   }};
 
-  const usernameFilled = setValue(usernameInput, credentials.username);
-  const passwordFilled = setValue(passwordInput, credentials.password);
+  const loginFormVisible = Boolean(usernameInput && passwordInput);
+  const usernameFilled = loginFormVisible ? setValue(usernameInput, credentials.username) : false;
+  const passwordFilled = loginFormVisible ? setValue(passwordInput, credentials.password) : false;
   const buttons = Array.from(document.querySelectorAll('button, input[type=submit], a')).filter(visible);
   const buttonScore = (el) => {{
     const value = [
@@ -358,14 +410,16 @@ def login_expression(username: str, password: str) -> str:
       el.getAttribute('aria-label') || ''
     ].join(' ').toLowerCase();
     let score = 0;
+    if (/giriş yap|giris yap/.test(value)) score += 30;
     if (/giriş|giris|login|oturum|submit|sign in/.test(value)) score += 10;
     if (el.tagName === 'BUTTON') score += 2;
     return score;
   }};
-  const submitButton = buttons.sort((a, b) => buttonScore(b) - buttonScore(a))[0];
+  const submitButton = loginFormVisible ? buttons.sort((a, b) => buttonScore(b) - buttonScore(a))[0] : null;
   if (submitButton) submitButton.click();
 
   return {{
+    loginFormVisible,
     usernameFound: Boolean(usernameInput),
     passwordFound: Boolean(passwordInput),
     usernameFilled,
@@ -380,6 +434,22 @@ def login_expression(username: str, password: str) -> str:
 def inspect_page(cdp: CdpWebSocket) -> JsonDict:
     value = cdp.evaluate(INSPECT_EXPRESSION)
     return value if isinstance(value, dict) else {}
+
+
+def lower_url(page: JsonDict) -> str:
+    return str(page.get("url") or "").lower()
+
+
+def wait_after_submit(cdp: CdpWebSocket, timeout_seconds: float = 15.0) -> JsonDict:
+    deadline = time.time() + timeout_seconds
+    latest = inspect_page(cdp)
+    while time.time() < deadline:
+        url = lower_url(latest)
+        if latest.get("mfaDetected") or "/login/twofactor" in url or "/login/login2" not in url:
+            return latest
+        time.sleep(0.5)
+        latest = inspect_page(cdp)
+    return latest
 
 
 def main() -> None:
@@ -404,6 +474,38 @@ def main() -> None:
 
     with CdpWebSocket(websocket_url, timeout=8.0) as cdp:
         inspected = inspect_page(cdp)
+        inspected_url = lower_url(inspected)
+        if inspected.get("mfaDetected") or "/login/twofactor" in inspected_url:
+            emit(
+                {
+                    "ok": True,
+                    "stage": "MANUAL_MFA_REQUIRED",
+                    "message": "Doganium MFA screen is visible; manual verification is required.",
+                    "page": {
+                        "title": inspected.get("title"),
+                        "url": inspected.get("url"),
+                        "mfaDetected": inspected.get("mfaDetected"),
+                    },
+                }
+            )
+
+        if not inspected.get("loginFormVisible"):
+            emit(
+                {
+                    "ok": True,
+                    "stage": "LOGIN_FORM_NOT_FOUND",
+                    "message": "No visible Doganium login form was found; no submit was attempted.",
+                    "port": port,
+                    "targets": [target],
+                    "elements": inspected.get("elements", []),
+                    "page": {
+                        "title": inspected.get("title"),
+                        "url": inspected.get("url"),
+                        "mfaDetected": inspected.get("mfaDetected"),
+                    },
+                }
+            )
+
         if not username or not password:
             emit(
                 {
@@ -422,10 +524,26 @@ def main() -> None:
             )
 
         login_result = cdp.evaluate(login_expression(username, password))
-        time.sleep(2)
-        after_submit = inspect_page(cdp)
+        if not isinstance(login_result, dict):
+            login_result = {}
+        if not login_result.get("loginFormVisible"):
+            emit(
+                {
+                    "ok": True,
+                    "stage": "LOGIN_FORM_NOT_FOUND",
+                    "message": "Login form was not visible at submit time; no submit was attempted.",
+                    "loginResult": login_result,
+                    "page": {
+                        "title": inspected.get("title"),
+                        "url": inspected.get("url"),
+                        "mfaDetected": inspected.get("mfaDetected"),
+                    },
+                }
+            )
+        after_submit = wait_after_submit(cdp, 15.0)
 
-    if after_submit.get("mfaDetected"):
+    after_url = lower_url(after_submit)
+    if "/login/twofactor" in after_url or after_submit.get("mfaDetected"):
         emit(
             {
                 "ok": True,
@@ -435,6 +553,21 @@ def main() -> None:
                 "page": {
                     "title": after_submit.get("title"),
                     "url": after_submit.get("url"),
+                },
+            }
+        )
+
+    if "/login/login2" in after_url:
+        emit(
+            {
+                "ok": True,
+                "stage": "LOGIN_STILL_ON_LOGIN_PAGE",
+                "message": "Login submit attempted, but the page stayed on /Login/Login2 after the 15 second timeout.",
+                "loginResult": login_result,
+                "page": {
+                    "title": after_submit.get("title"),
+                    "url": after_submit.get("url"),
+                    "mfaDetected": after_submit.get("mfaDetected"),
                 },
             }
         )
