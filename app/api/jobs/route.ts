@@ -12,6 +12,7 @@ const createJobSchema = z.object({
   documentSerial: z.string().optional(),
   birthDate: z.string().optional(),
   rawMessage: z.string().optional(),
+  source: z.enum(["manual", "whatsapp", "website", "test"]).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
       documentSerial: normalized.documentSerial,
       birthDate: normalized.birthDate,
       rawMessage: body.rawMessage ?? null,
-      source: "manual",
+      source: (body.source ?? "manual") as never,
       status: "pending",
     });
 

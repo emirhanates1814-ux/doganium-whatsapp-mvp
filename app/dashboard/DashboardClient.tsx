@@ -41,7 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { TrafficJobResultPayload } from "@/types/traffic";
+import type { TrafficJobResultPayload, TrafficJobSource } from "@/types/traffic";
 import type { TrafficJobRow } from "@/lib/traffic-jobs";
 
 type DashboardJobResult = TrafficJobResultPayload & {
@@ -90,7 +90,7 @@ type Summary = {
 };
 
 const statusLabels: Record<TrafficJobRow["status"], string> = {
-  pending: "Bekliyor",
+  pending: "Otomasyona Hazır",
   running: "Çalışıyor",
   waiting_mfa: "MFA Bekliyor",
   completed: "Tamamlandı",
@@ -98,10 +98,11 @@ const statusLabels: Record<TrafficJobRow["status"], string> = {
   cancelled: "İptal",
 };
 
-const sourceLabels: Record<TrafficJobRow["source"], string> = {
-  manual: "Manuel",
+const sourceLabels: Record<TrafficJobSource, string> = {
+  manual: "Test/Yedek",
   whatsapp: "WhatsApp",
-  test: "Test",
+  website: "Web Sitesi",
+  test: "Test/Yedek",
 };
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
@@ -147,6 +148,7 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
           documentSerial: "HV689268",
           birthDate: "25.02.2000",
           rawMessage: "TC 27136769618 Plaka 34MYZ039 Belge HV689268 Dogum 25.02.2000",
+          source: "test",
         }),
       });
       const result = await response.json() as { ok?: boolean; data?: DashboardJob; error?: string };
@@ -177,7 +179,7 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
       const response = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newJob),
+        body: JSON.stringify({ ...newJob, source: "test" }),
       });
       const result = await response.json() as { ok?: boolean; data?: DashboardJob; error?: string };
 
@@ -190,7 +192,7 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
         plate: result.data.plate ?? newJob.plate,
         status: result.data.status,
         createdAt: result.data.createdAt,
-        nextStep: "İşi seçip Manuel Teklif Ekle bölümünden teklif sonucunu girin.",
+        nextStep: "Bu yedek/test talebidir. İşi seçip otomasyon durumunu veya yedek manuel teklif alanını kontrol edin.",
       });
       setNewJob({
         customerPhone: "",
@@ -212,7 +214,7 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
     <AppShell
       active="dashboard"
       title="Operasyon Paneli"
-      description="Ares Sigorta trafik teklif işlerini, yerel kuyruğu, mock/manuel sonuç akışını ve MFA güvenli Doganium hazırlığını tek ekrandan yönetin."
+      description="WhatsApp ve web sitesi formundan gelen trafik teklif taleplerini izleyin, otomasyona hazır işleri yönetin ve MFA güvenli Doganium akışını takip edin."
       badge="Local Desktop Mode"
       actions={
         <Button asChild variant="outline" size="lg" className="rounded-xl border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">
@@ -240,22 +242,22 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
               </Badge>
               <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-100 shadow-sm hover:bg-emerald-400/14">
                 <Sparkles className="mr-1 size-3.5" />
-                Mock/manuel sonuç akışı hazır
+                WhatsApp / Web Sitesi / Test
               </Badge>
             </div>
             <div>
               <CardTitle className="ares-title text-3xl font-black lg:text-4xl">
-                Trafik Teklif MVP Operasyonu
+                Gelen Talepler
               </CardTitle>
               <CardDescription className="ares-muted mt-2 max-w-3xl text-sm leading-6">
-                Bekleyen işleri izleyin, local queue durumunu takip edin ve Doganium MFA gerekiyorsa
-                manuel doğrulama adımıyla mock/manuel sonuç akışını sürdürün.
+                Normal kullanımda müşteri bilgileri WhatsApp veya web sitesi formundan otomatik gelir.
+                Operatör gelen talebi görür, hazır işleri Doganium otomasyonuna alır.
               </CardDescription>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
-              <HeroMetric label="Listelenen iş" value={summary.total} />
+              <HeroMetric label="Gelen talep" value={summary.total} />
               <HeroMetric label="Tamamlanan" value={summary.completed} />
-              <HeroMetric label="Aksiyon bekleyen" value={summary.pending + summary.waiting_mfa} />
+              <HeroMetric label="Otomasyona hazır" value={summary.pending} />
             </div>
           </CardHeader>
         </Card>
@@ -298,9 +300,9 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
       />
 
       <section className="grid min-w-0 grid-cols-12 gap-3">
-        <SummaryCard label="Toplam İş" value={summary.total} tone="navy" helper="Son 50 kayıt" icon={FileText} index={0} />
-        <SummaryCard label="Bekleyen" value={summary.pending} tone="orange" helper="Kuyrukta" icon={Clock3} index={1} />
-        <SummaryCard label="Çalışan" value={summary.running} tone="blue" helper="Worker işliyor" icon={PlayCircle} index={2} />
+        <SummaryCard label="Gelen Talep" value={summary.total} tone="navy" helper="Son 50 kayıt" icon={FileText} index={0} />
+        <SummaryCard label="Otomasyona Hazır" value={summary.pending} tone="orange" helper="Geçerli veri" icon={Clock3} index={1} />
+        <SummaryCard label="Otomasyon" value={summary.running} tone="blue" helper="Worker işliyor" icon={PlayCircle} index={2} />
         <SummaryCard label="Tamamlanan" value={summary.completed} tone="green" helper="Sonuç hazır" icon={CheckCircle2} index={3} />
         <SummaryCard label="Hatalı" value={summary.failed} tone="red" helper="Kontrol gerekli" icon={AlertTriangle} index={4} />
         <SummaryCard label="MFA Bekleyen" value={summary.waiting_mfa} tone="amber" helper="Manuel adım" icon={Hourglass} index={5} />
@@ -334,11 +336,11 @@ function HeroMetric({ label, value }: { label: string; value: number }) {
 
 function OperationFlow({ summary }: { summary: Summary }) {
   const stages = [
-    { label: "Gelen İş", count: summary.total, icon: Inbox, active: true },
-    { label: "Kuyruk", count: summary.pending, icon: List, active: summary.pending > 0 },
-    { label: "Yarı otomatik hazırlık", count: summary.running + summary.waiting_mfa, icon: Cpu, active: summary.running + summary.waiting_mfa > 0, processing: summary.running > 0 },
-    { label: "Mock/manuel sonuç", count: summary.completed, icon: FileText, active: summary.completed > 0 },
-    { label: "WhatsApp", count: 0, icon: MessageCircle, active: false },
+    { label: "Gelen Talepler", count: summary.total, icon: Inbox, active: true },
+    { label: "Otomasyona Hazır", count: summary.pending, icon: List, active: summary.pending > 0 },
+    { label: "Doganium Akışı", count: summary.running + summary.waiting_mfa, icon: Cpu, active: summary.running + summary.waiting_mfa > 0, processing: summary.running > 0 },
+    { label: "Teklif/PDF Sonucu", count: summary.completed, icon: FileText, active: summary.completed > 0 },
+    { label: "WhatsApp Mesajı", count: 0, icon: MessageCircle, active: false },
   ];
 
   return (
@@ -351,8 +353,8 @@ function OperationFlow({ summary }: { summary: Summary }) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(16,185,129,0.16),transparent_30%)]" />
       <div className="relative mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Canlı İş Akışı</p>
-          <p className="ares-muted mt-1 text-sm">WhatsApp talebinden mock/manuel teklif sonucuna kadar yerel operasyon hattı.</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-300">Canlı Talep Akışı</p>
+          <p className="ares-muted mt-1 text-sm">WhatsApp veya web sitesi talebinden Doganium otomasyonu ve WhatsApp-ready mesaja kadar yerel operasyon hattı.</p>
         </div>
         <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
           Ares Operasyon Hattı
@@ -418,10 +420,10 @@ function MvpReadinessPanel({
   onCreateTestJob: () => void;
 }) {
   const statusItems = [
-    { label: "Local queue", value: "Aktif", detail: "Yerel iş kuyruğu MVP akışını taşır.", tone: "green" },
-    { label: "Mock/manuel quote flow", value: "Aktif", detail: "Mock/manuel sonuç akışı hazır.", tone: "green" },
-    { label: "Doganium full automation", value: "Sonraki faz", detail: "Tam otomatik PDF alma Phase 2 kapsamındadır.", tone: "amber" },
-    { label: "MFA/manual verification", value: "Beklenen dış adım", detail: "MFA ekranında manuel doğrulama gerekli.", tone: "blue" },
+    { label: "WhatsApp intake", value: "Hedef kaynak", detail: "Müşteri bilgisi otomatik gelir.", tone: "green" },
+    { label: "Web form intake", value: "Hedef kaynak", detail: "Ares web formu canonical kaynaktır.", tone: "green" },
+    { label: "Doganium automation", value: "Phase 1.5/2", detail: "MFA güvenli hazırlık ve devam adımları.", tone: "amber" },
+    { label: "Manual/test", value: "Yedek", detail: "Ana workflow değildir.", tone: "blue" },
   ] as const;
 
   const checklist = [
@@ -437,9 +439,9 @@ function MvpReadinessPanel({
     <section className="grid min-w-0 grid-cols-12 gap-4">
       <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-7">
         <CardHeader className="p-4 pb-3">
-          <CardTitle className="ares-title text-base font-black">MVP Durumu</CardTitle>
+          <CardTitle className="ares-title text-base font-black">Gelen Talep Otomasyonu</CardTitle>
           <CardDescription className="ares-muted text-sm">
-            Doganium tam otomasyonu MVP için bloklayıcı değildir; MFA görülürse manuel doğrulama ile mock/manuel mod devam eder.
+            Normal kullanımda müşteri bilgileri WhatsApp veya web sitesi formundan otomatik gelir; manuel giriş yedek/test amaçlıdır.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid min-w-0 gap-3 p-4 pt-0 md:grid-cols-4">
@@ -457,8 +459,8 @@ function MvpReadinessPanel({
 
       <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-5">
         <CardHeader className="p-4 pb-3">
-          <CardTitle className="ares-title text-base font-black">MVP Lokal Test Akışı</CardTitle>
-          <CardDescription className="ares-muted text-sm">Test işi oluşturun, mock worker komutunu çalıştırın, sonucu dashboard'da görüntüleyin.</CardDescription>
+          <CardTitle className="ares-title text-base font-black">Test / Yedek Akış</CardTitle>
+          <CardDescription className="ares-muted text-sm">Bu alan ana workflow değildir; sadece smoke test ve operator override için kullanılır.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 p-4 pt-0">
           <Button
@@ -467,13 +469,13 @@ function MvpReadinessPanel({
             disabled={creatingTestJob}
             className="h-11 w-full rounded-2xl bg-emerald-500 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
           >
-            {creatingTestJob ? "Test işi oluşturuluyor..." : "MVP Test İşi Oluştur"}
+            {creatingTestJob ? "Test talebi oluşturuluyor..." : "Test / Yedek Talep Oluştur"}
           </Button>
 
           {createdTestJob ? (
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm">
               <div className="flex items-center justify-between gap-2">
-                <p className="font-bold text-emerald-100">Test işi oluşturuldu</p>
+                <p className="font-bold text-emerald-100">Test/yedek talep oluşturuldu</p>
                 <SoftBadge tone="green">{getStatusLabel(createdTestJob.status)}</SoftBadge>
               </div>
               <dl className="mt-3 grid gap-2 text-xs text-slate-200">
@@ -538,16 +540,16 @@ function NewTrafficJobPanel({
   };
 
   return (
-    <Card className="ares-panel min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18">
+      <Card className="ares-panel min-w-0 overflow-hidden rounded-3xl border-amber-400/15 bg-slate-950/35 shadow-xl shadow-black/12">
       <CardHeader className="border-b border-[var(--ares-border)] p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle className="ares-title text-lg font-black">Yeni Trafik İşi</CardTitle>
+            <CardTitle className="ares-title text-lg font-black">Test / Yedek Talep Oluştur</CardTitle>
             <CardDescription className="ares-muted text-sm">
-              Gerçek MVP akışı için yerel kuyruğa manuel trafik teklif işi ekleyin.
+              Normal kullanımda müşteri bilgileri WhatsApp veya web sitesi formundan otomatik gelir.
             </CardDescription>
           </div>
-          <SoftBadge tone="green">Local queue</SoftBadge>
+          <SoftBadge tone="amber">Test/Fallback</SoftBadge>
         </div>
       </CardHeader>
       <CardContent className="grid min-w-0 gap-4 p-5 lg:grid-cols-12">
@@ -575,7 +577,7 @@ function NewTrafficJobPanel({
             disabled={submitting}
             className="h-11 rounded-2xl bg-emerald-500 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
           >
-            {submitting ? "İş oluşturuluyor..." : "Yeni Trafik İşi Oluştur"}
+            {submitting ? "Yedek talep oluşturuluyor..." : "Test / Yedek Talep Oluştur"}
           </Button>
 
           {createdJob ? (
@@ -661,7 +663,7 @@ function SystemStatusPanel() {
     { label: "Local Store", value: "Aktif", detail: "JSON varsayılan", tone: "green", icon: ShieldCheck },
     { label: "Prisma SQLite", value: "Opsiyonel", detail: "Worker bekliyor", tone: "neutral", icon: FileText },
     { label: "Doganium", value: "Yarı otomatik hazırlık", detail: "MFA manuel doğrulanır", tone: "orange", icon: AlertTriangle },
-    { label: "Mock Worker", value: "Hazır", detail: "Mock/manuel sonuç akışı hazır", tone: "green", icon: BadgeCheck },
+    { label: "Inbound Intake", value: "Hedef", detail: "WhatsApp / Web Sitesi / Test", tone: "green", icon: BadgeCheck },
     { label: "WhatsApp", value: "Local test", detail: "Webhook yok", tone: "blue", icon: Car },
   ] as const;
 
@@ -720,9 +722,9 @@ function RecentJobsTable({
         <CardHeader className="border-b border-[var(--ares-border)] bg-[rgba(7,21,33,0.46)] p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <CardTitle className="text-xl font-black text-slate-100">İşlem Kuyruğu</CardTitle>
+              <CardTitle className="text-xl font-black text-slate-100">Gelen Talepler</CardTitle>
               <CardDescription className="text-sm text-slate-400">
-                Detay butonu seçili işi sağ taraftaki operasyon çekmecesinde açar.
+                WhatsApp, web sitesi ve test/yedek kaynaklı talepler burada izlenir.
               </CardDescription>
             </div>
             <Badge variant="outline" className="border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-emerald-200 shadow-sm">
@@ -738,7 +740,7 @@ function RecentJobsTable({
               <div>
                 <p className="text-base font-semibold text-slate-100">Henüz trafik teklif işi yok.</p>
                 <p className="mt-2 text-sm text-slate-400">
-                  Yerel JSON akışını test etmek için önce test job oluşturun, sonra mock worker çalıştırın.
+                  Normal akışta talepler WhatsApp veya web sitesi formundan gelir. Test/yedek talep kartı sadece fallback içindir.
                 </p>
               </div>
               <div className="mx-auto grid max-w-2xl gap-2 rounded-2xl border border-white/10 bg-slate-900/80 p-4 text-left text-sm text-emerald-100">
@@ -754,6 +756,7 @@ function RecentJobsTable({
                 <TableRow className="border-white/10 hover:bg-transparent">
                   <TableHead className="h-12 w-[158px] px-5 text-xs font-bold uppercase tracking-wide text-slate-300">Tarih</TableHead>
                   <TableHead className="px-4 text-xs font-bold uppercase tracking-wide text-slate-300">Telefon</TableHead>
+                  <TableHead className="w-[132px] px-4 text-xs font-bold uppercase tracking-wide text-slate-300">Kaynak</TableHead>
                   <TableHead className="w-[132px] px-4 text-xs font-bold uppercase tracking-wide text-slate-300">Plaka</TableHead>
                   <TableHead className="w-[142px] px-4 text-xs font-bold uppercase tracking-wide text-slate-300">TCKN</TableHead>
                   <TableHead className="w-[154px] px-4 text-xs font-bold uppercase tracking-wide text-slate-300">Durum</TableHead>
@@ -773,6 +776,7 @@ function RecentJobsTable({
                   >
                     <TableCell className="px-5 text-xs font-medium text-slate-400">{formatDate(job.createdAt)}</TableCell>
                     <TableCell className="truncate px-4 font-semibold text-slate-100">{job.customerPhone || "-"}</TableCell>
+                    <TableCell className="px-4"><SourceBadge source={job.source} /></TableCell>
                     <TableCell className="px-4">
                       <span className="inline-flex max-w-full rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs font-bold tracking-wide text-slate-100">
                         <span className="truncate">{job.plate ?? "-"}</span>
@@ -821,12 +825,12 @@ function NoSelectedJobHint({ hasJobs }: { hasJobs: boolean }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-bold text-slate-100">
-            {hasJobs ? "İş detayını açmak için bir kayıt seçin." : "Test akışı için yerel job oluşturun."}
+            {hasJobs ? "Talep detayını açmak için bir kayıt seçin." : "Gelen WhatsApp/web form talepleri burada listelenecek."}
           </p>
           <p className="ares-muted mt-1 text-sm">
             {hasJobs
-              ? "Detay çekmecesinde müşteri bilgileri, ham mesaj ve teklif sonuçları görüntülenir."
-              : "Yerel JSON store ve mock worker ile Doganium erişimi olmadan demo akışını doğrulayabilirsiniz."}
+              ? "Detay çekmecesinde kaynak, otomasyon hazırlığı, ham mesaj ve teklif sonuçları görüntülenir."
+              : "Test/yedek talep oluşturma sadece fallback ve smoke test içindir; normal müşteri bilgisi otomatik gelir."}
           </p>
         </div>
         <div className="grid shrink-0 gap-1.5 rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-xs text-emerald-100">
@@ -852,6 +856,7 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
   const [manualQuoteSuccess, setManualQuoteSuccess] = useState<string | null>(null);
   const [savingManualQuote, setSavingManualQuote] = useState(false);
   const [whatsappMessage, setWhatsappMessage] = useState("");
+  const [automationNotice, setAutomationNotice] = useState("");
 
   if (!job) {
     return (
@@ -873,6 +878,7 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
   const companyCount = job.result?.quotes.length ?? 0;
   const shortId = job.id.length > 12 ? `${job.id.slice(0, 8)}...${job.id.slice(-4)}` : job.id;
   const canPrepareWhatsapp = job.status === "completed" && !!cheapestOffer;
+  const readinessItems = buildReadinessItems(job);
   const updateManualQuote = (field: keyof ManualQuoteFormState, value: string | boolean) => {
     setManualQuote((current) => ({ ...current, [field]: value }));
   };
@@ -943,6 +949,9 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
       // Copy is best effort; the textarea still shows the message.
     }
   };
+  const startAutomation = () => {
+    setAutomationNotice("Phase 1.5: Doganium bağlantı/MFA kontrolü hazır. Trafik sorgu ve PDF alma adımları sıradaki iş.");
+  };
 
   return (
     <>
@@ -971,7 +980,7 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-lg font-black text-white">Seçili İş</CardTitle>
+                <CardTitle className="text-lg font-black text-white">Gelen Talep</CardTitle>
                 <StatusBadge status={job.status} />
               </div>
               <CardDescription className="mt-1 truncate text-xs text-emerald-50/75">
@@ -1000,8 +1009,57 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
               <DetailPill label="TCKN" value={maskTckn(job.tckn)} />
               <DetailPill label="Belge" value={job.documentSerial ?? "-"} />
               <DetailPill label="Doğum" value={job.birthDate ?? "-"} />
-              <DetailPill label="Kaynak" value={sourceLabels[job.source] ?? job.source} span />
+              <div className="ares-surface col-span-2 min-w-0 rounded-2xl px-3.5 py-3">
+                <p className="text-xs font-medium text-slate-400">Kaynak</p>
+                <div className="mt-1"><SourceBadge source={job.source} /></div>
+              </div>
             </dl>
+          </section>
+
+          <Separator />
+
+          <section>
+            <p className="mb-3 text-sm font-bold text-slate-100">Otomasyona Hazırlık</p>
+            <div className="grid gap-2">
+              {readinessItems.map((item) => (
+                <div key={item.label} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2">
+                  <span className="text-sm font-semibold text-slate-200">{item.label}</span>
+                  <SoftBadge tone={item.ready ? "green" : "amber"}>{item.ready ? "Hazır" : "Eksik"}</SoftBadge>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <Separator />
+
+          <section className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-slate-100">Doganium Otomasyon Akışı</p>
+                <p className="ares-muted mt-1 text-xs">
+                  Phase 1.5: Doganium bağlantı/MFA kontrolü hazır. Trafik sorgu ve PDF alma adımları sıradaki iş.
+                </p>
+              </div>
+              <SoftBadge tone="amber">Phase 1.5</SoftBadge>
+            </div>
+            <Button
+              type="button"
+              onClick={startAutomation}
+              className="h-11 w-full rounded-2xl bg-emerald-500 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
+            >
+              Otomasyonu Başlat
+            </Button>
+            <div className="grid gap-2">
+              {["Doganium başlat", "DevTools bağlantısı", "Login/MFA kontrolü", "Trafik sorgusu", "Teklif/PDF sonucu", "WhatsApp mesajı"].map((step, index) => (
+                <div key={step} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-200">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-xs font-black text-emerald-200">{index + 1}</span>
+                  <span className="font-semibold">{step}</span>
+                </div>
+              ))}
+            </div>
+            {automationNotice ? (
+              <p className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">{automationNotice}</p>
+            ) : null}
           </section>
 
           <Separator />
@@ -1084,8 +1142,8 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
 
           <section className="space-y-3">
             <div>
-              <p className="text-sm font-bold text-slate-100">Manuel Teklif Ekle</p>
-              <p className="ares-muted mt-1 text-xs">Doganium/PDF otomasyonu beklemeden manuel veya mock teklif sonucu kaydedin.</p>
+              <p className="text-sm font-bold text-slate-100">Yedek Manuel Mod</p>
+              <p className="ares-muted mt-1 text-xs">Otomasyon veya şirket portalları takılırsa geçici olarak elle teklif girilebilir.</p>
             </div>
             <div className="grid gap-3">
               <FormField label="Sigorta şirketi" value={manualQuote.company} onChange={(value) => updateManualQuote("company", value)} placeholder="Örn. QUICK" />
@@ -1189,6 +1247,34 @@ function InfoRow({ label, value, monospace = false }: { label: string; value: st
   );
 }
 
+function SourceBadge({ source }: { source: unknown }) {
+  const normalized = normalizeSource(source);
+  const tone = normalized === "whatsapp" || normalized === "website" ? "green" : "amber";
+  return <SoftBadge tone={tone}>{getSourceLabel(source)}</SoftBadge>;
+}
+
+function normalizeSource(source: unknown): TrafficJobSource {
+  if (source === "whatsapp" || source === "website" || source === "manual" || source === "test") {
+    return source;
+  }
+
+  return "test";
+}
+
+function getSourceLabel(source: unknown) {
+  return sourceLabels[normalizeSource(source)];
+}
+
+function buildReadinessItems(job: DashboardJob) {
+  return [
+    { label: "Telefon", ready: Boolean(job.customerPhone) },
+    { label: "Plaka", ready: Boolean(job.plate) },
+    { label: "TCKN", ready: Boolean(job.tckn) },
+    { label: "Belge seri no", ready: Boolean(job.documentSerial) },
+    { label: "Doğum tarihi", ready: Boolean(job.birthDate) },
+  ];
+}
+
 function DetailPill({ label, value, span = false }: { label: string; value: string; span?: boolean }) {
   return (
     <div className={`ares-surface min-w-0 rounded-2xl px-3.5 py-3 ${span ? "col-span-2" : ""}`}>
@@ -1217,7 +1303,7 @@ function StatusBadge({ status }: { status: TrafficJobRow["status"] }) {
 
 function getStatusLabel(status: TrafficJobRow["status"]) {
   const labels: Record<TrafficJobRow["status"], string> = {
-    pending: "Bekliyor",
+    pending: "Otomasyona Hazır",
     running: "Çalışıyor",
     waiting_mfa: "MFA Bekliyor",
     completed: "Tamamlandı",

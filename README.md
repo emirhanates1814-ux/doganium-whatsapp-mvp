@@ -115,7 +115,7 @@ npm.cmd run dev
 npm.cmd run dev:electron
 ```
 
-3. Dashboard'da `MVP Test İşi Oluştur` aksiyonunu kullanin.
+3. Dashboard'da `Test / Yedek Talep Oluştur` aksiyonunu yalnizca smoke test icin kullanin.
 
 4. Mock worker'i calistirin:
 
@@ -131,10 +131,10 @@ Bu akis Doganium PDF otomasyonunun tamamlandigini iddia etmez; MFA/manual verifi
 
 Bu akis ana urun akisi degildir. Sadece test, smoke, demo ve operator override icindir.
 
-1. `Yeni Trafik İşi` kartinda telefon, plaka, TCKN, belge seri no, dogum tarihi ve ham mesaj/not alanlarini doldurun.
-2. `Yeni Trafik İşi Oluştur` ile isi yerel kuyruğa ekleyin.
+1. `Test / Yedek Talep Oluştur` kartinda telefon, plaka, TCKN, belge seri no, dogum tarihi ve ham mesaj/not alanlarini doldurun.
+2. `Test / Yedek Talep Oluştur` ile isi yerel kuyruğa ekleyin.
 3. Islem kuyrugundan isi secin.
-4. `Manuel Teklif Ekle` bolumunde sigorta sirketi, prim tutari, para birimi, opsiyonel PDF/dosya yolu ve not girin.
+4. `Yedek Manuel Mod` bolumunde sigorta sirketi, prim tutari, para birimi, opsiyonel PDF/dosya yolu ve not girin.
 5. `Kaydedince işi tamamlandı yap` seciliyse kayit sonrasi is `completed` olur.
 6. Tamamlanan iste `WhatsApp Mesajı Hazırla` ile kopyalanabilir Turkce mesaj uretin.
 

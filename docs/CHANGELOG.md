@@ -10,6 +10,7 @@ Bu dosya MVP icin onemli proje degisikliklerini ozetler. Tarihler repo gecmisind
 - Added `docs/WORKFLOW_LOCK.md` and `docs/GOAL.md`.
 - Clarified that Operasyon Paneli is the daily screen and Doganium Teknik Paneli is setup/debug only.
 - Explicitly documented: if future changes make manual entry the primary workflow, reject that change.
+- Dashboard wording aligned with locked workflow: `Gelen Talepler`, `Otomasyona Hazır`, `Otomasyonu Başlat`, and manual/test forms demoted to fallback.
 
 ### MVP Stabilizasyonu ve MFA Guvenli Doganium Hazirligi
 
@@ -18,8 +19,8 @@ Bu dosya MVP icin onemli proje degisikliklerini ozetler. Tarihler repo gecmisind
 - Doganium Teknik Paneli login aksiyonu tam otomatik giris vaadi yerine Login/MFA kontrolu olarak netlestirildi.
 - MVP checklist eklendi: is kuyrugu, sonuc goruntuleme, ayarlar, loglar, Doganium baglanti kontrolu ve EXE paketleme.
 - Doganium tam otomatik PDF alma ve MFA full automation Phase 2 olarak ayrildi.
-- Dashboard'a gercek lokal `Yeni Trafik İşi` formu eklendi.
-- Secili is detayinda `Manuel Teklif Ekle` akisi eklendi; teklifler yerel result API/store uzerinden kaydedilir ve is tamamlanmis olarak isaretlenebilir.
+- Dashboard'a fallback/test amacli `Test / Yedek Talep Oluştur` formu eklendi.
+- Secili is detayinda `Yedek Manuel Mod` akisi eklendi; teklifler yerel result API/store uzerinden kaydedilir ve is tamamlanmis olarak isaretlenebilir.
 - Tamamlanan isler icin en uygun/en yuksek teklif, sirket sayisi ve kopyalanabilir WhatsApp mesaj hazirlama akisi eklendi.
 
 ## 2026-06-14

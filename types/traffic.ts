@@ -17,6 +17,8 @@ export type TrafficRequestJobStatus =
   | "failed"
   | "cancelled";
 
+export type TrafficJobSource = "whatsapp" | "website" | "manual" | "test";
+
 export type LegacyTrafficJobStatus = TrafficQuoteStatus;
 export type TrafficJobStatus = TrafficQuoteStatus;
 
