@@ -11,6 +11,7 @@ Bu dosya MVP icin onemli proje degisikliklerini ozetler. Tarihler repo gecmisind
 - Clarified that Operasyon Paneli is the daily screen and Doganium Teknik Paneli is setup/debug only.
 - Explicitly documented: if future changes make manual entry the primary workflow, reject that change.
 - Dashboard wording aligned with locked workflow: `Gelen Talepler`, `Otomasyona Hazır`, `Otomasyonu Başlat`, and manual/test forms demoted to fallback.
+- Dashboard first screen now prioritizes `Seçili Talep` and the primary `Otomasyonu Başlat` CTA; test/fallback tools moved below the main automation area.
 
 ### MVP Stabilizasyonu ve MFA Guvenli Doganium Hazirligi
 

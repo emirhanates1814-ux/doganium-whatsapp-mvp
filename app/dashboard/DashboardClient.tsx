@@ -125,12 +125,17 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
   const [manualJobError, setManualJobError] = useState<string | null>(null);
   const [creatingManualJob, setCreatingManualJob] = useState(false);
   const selectedJob = selectedJobId ? jobs.find((job) => job.id === selectedJobId) ?? null : null;
+  const activeRequest = selectedJob ?? jobs[0] ?? null;
+  const [topAutomationNotice, setTopAutomationNotice] = useState("");
   const summary = useMemo(() => buildSummary(jobs), [jobs]);
   const openJobDetail = (jobId: string) => {
     setSelectedJobId(jobId);
   };
   const closeJobDetail = () => {
     setSelectedJobId(null);
+  };
+  const startTopAutomation = () => {
+    setTopAutomationNotice("Phase 1.5: Doganium bağlantı/MFA kontrolü hazır. Trafik sorgu ve PDF alma adımları sıradaki iş.");
   };
   const createMvpTestJob = async () => {
     setCreatingTestJob(true);
@@ -250,8 +255,7 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
                 Gelen Talepler
               </CardTitle>
               <CardDescription className="ares-muted mt-2 max-w-3xl text-sm leading-6">
-                Normal kullanımda müşteri bilgileri WhatsApp veya web sitesi formundan otomatik gelir.
-                Operatör gelen talebi görür, hazır işleri Doganium otomasyonuna alır.
+                WhatsApp ve web sitesi formundan gelen talepleri seçin, hazır olan talep için Doganium otomasyonunu başlatın.
               </CardDescription>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -281,23 +285,14 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
         </Card>
       </motion.section>
 
+      <SelectedRequestAutomationPanel
+        request={activeRequest}
+        selectedExplicitly={!!selectedJob}
+        notice={topAutomationNotice}
+        onStart={startTopAutomation}
+      />
+
       <OperationFlow summary={summary} />
-
-      <MvpReadinessPanel
-        createdTestJob={createdTestJob}
-        createJobError={createJobError}
-        creatingTestJob={creatingTestJob}
-        onCreateTestJob={createMvpTestJob}
-      />
-
-      <NewTrafficJobPanel
-        form={newJob}
-        createdJob={createdManualJob}
-        error={manualJobError}
-        submitting={creatingManualJob}
-        onChange={setNewJob}
-        onSubmit={createManualTrafficJob}
-      />
 
       <section className="grid min-w-0 grid-cols-12 gap-3">
         <SummaryCard label="Gelen Talep" value={summary.total} tone="navy" helper="Son 50 kayıt" icon={FileText} index={0} />
@@ -320,6 +315,22 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
 
       {!selectedJob ? <NoSelectedJobHint hasJobs={jobs.length > 0} /> : null}
 
+      <MvpReadinessPanel
+        createdTestJob={createdTestJob}
+        createJobError={createJobError}
+        creatingTestJob={creatingTestJob}
+        onCreateTestJob={createMvpTestJob}
+      />
+
+      <NewTrafficJobPanel
+        form={newJob}
+        createdJob={createdManualJob}
+        error={manualJobError}
+        submitting={creatingManualJob}
+        onChange={setNewJob}
+        onSubmit={createManualTrafficJob}
+      />
+
       <JobDetailDrawer job={selectedJob} onClose={closeJobDetail} />
     </AppShell>
   );
@@ -331,6 +342,116 @@ function HeroMetric({ label, value }: { label: string; value: number }) {
       <p className="text-xs font-semibold uppercase text-emerald-50/70">{label}</p>
       <p className="mt-1 text-2xl font-black text-white">{value}</p>
     </div>
+  );
+}
+
+function SelectedRequestAutomationPanel({
+  request,
+  selectedExplicitly,
+  notice,
+  onStart,
+}: {
+  request: DashboardJob | null;
+  selectedExplicitly: boolean;
+  notice: string;
+  onStart: () => void;
+}) {
+  const readinessItems = request ? buildReadinessItems(request) : [];
+  const ready = request ? readinessItems.every((item) => item.ready) : false;
+  const steps = [
+    "Talep alındı",
+    "Bilgiler doğrulandı",
+    "Doganium başlat",
+    "Login/MFA kontrolü",
+    "Trafik sorgusu",
+    "Teklif/PDF sonucu",
+    "WhatsApp mesajı",
+  ];
+
+  return (
+    <section className="grid min-w-0 grid-cols-12 gap-4">
+      <Card className="ares-panel-strong col-span-12 min-w-0 overflow-hidden rounded-3xl border-emerald-300/20 shadow-2xl shadow-black/25 xl:col-span-5">
+        <CardHeader className="border-b border-[var(--ares-border)] p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="ares-title text-xl font-black">Seçili Talep</CardTitle>
+              <CardDescription className="ares-muted text-sm">
+                {request
+                  ? selectedExplicitly
+                    ? "Seçilen talep otomasyon için hazırlandı."
+                    : "Son gelen talep önizleniyor; kuyruktan farklı bir talep seçebilirsiniz."
+                  : "Henüz talep seçilmedi"}
+              </CardDescription>
+            </div>
+            {request ? <SourceBadge source={request.source} /> : <SoftBadge tone="neutral">Talep yok</SoftBadge>}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 p-5">
+          {request ? (
+            <>
+              <div className="grid gap-2 text-sm">
+                <InfoRow label="Telefon" value={request.customerPhone || "-"} />
+                <InfoRow label="Plaka" value={request.plate ?? "-"} />
+                <div className="flex min-w-0 justify-between gap-3">
+                  <span className="text-slate-400">Hazırlık</span>
+                  <SoftBadge tone={ready ? "green" : "amber"}>{ready ? "Otomasyona Hazır" : "Eksik Bilgi"}</SoftBadge>
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {readinessItems.map((item) => (
+                  <div key={item.label} className="flex items-center justify-between gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2">
+                    <span className="text-xs font-semibold text-slate-200">{item.label}</span>
+                    <SoftBadge tone={item.ready ? "green" : "amber"}>{item.ready ? "Hazır" : "Eksik"}</SoftBadge>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+              <p className="font-bold text-slate-100">Henüz talep seçilmedi</p>
+              <p className="ares-muted mt-2 text-sm">
+                WhatsApp veya web sitesinden gelen talep seçildiğinde otomasyon başlatılır.
+              </p>
+            </div>
+          )}
+          <Button
+            type="button"
+            onClick={onStart}
+            disabled={!request}
+            className="h-12 w-full rounded-2xl bg-emerald-500 text-base font-black text-emerald-950 shadow-xl shadow-emerald-950/30 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            Otomasyonu Başlat
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-7">
+        <CardHeader className="border-b border-[var(--ares-border)] p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="ares-title text-xl font-black">Doganium Otomasyon Akışı</CardTitle>
+              <CardDescription className="ares-muted text-sm">
+                Phase 1.5: Doganium bağlantı/MFA kontrolü hazır. Trafik sorgu ve PDF alma adımları sıradaki iş.
+              </CardDescription>
+            </div>
+            <SoftBadge tone="amber">Phase 1.5</SoftBadge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3 p-5">
+          <div className="grid gap-2 md:grid-cols-7">
+            {steps.map((step, index) => (
+              <div key={step} className="min-w-0 rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-400/10 text-xs font-black text-emerald-200">{index + 1}</span>
+                <p className="mt-2 text-xs font-bold leading-5 text-slate-200">{step}</p>
+              </div>
+            ))}
+          </div>
+          {notice ? (
+            <p className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">{notice}</p>
+          ) : null}
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 
@@ -467,9 +588,10 @@ function MvpReadinessPanel({
             type="button"
             onClick={onCreateTestJob}
             disabled={creatingTestJob}
-            className="h-11 w-full rounded-2xl bg-emerald-500 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
+            variant="outline"
+            className="h-10 w-full rounded-2xl border-amber-400/25 bg-amber-400/10 text-sm font-bold text-amber-100 hover:bg-amber-400/16 hover:text-white"
           >
-            {creatingTestJob ? "Test talebi oluşturuluyor..." : "Test / Yedek Talep Oluştur"}
+            {creatingTestJob ? "Test talebi oluşturuluyor..." : "Test Talebi Oluştur"}
           </Button>
 
           {createdTestJob ? (
@@ -500,6 +622,7 @@ function MvpReadinessPanel({
 
           <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-3">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Mock Worker Çalıştır</p>
+            <p className="ares-muted mt-1 text-xs">Sadece smoke test / operatör override içindir.</p>
             <code className="mt-2 block overflow-x-auto whitespace-nowrap rounded-xl bg-black/30 px-3 py-2 text-xs text-emerald-100">
               python .\worker\mock_doganium_worker.py
             </code>
@@ -575,9 +698,10 @@ function NewTrafficJobPanel({
             type="button"
             onClick={onSubmit}
             disabled={submitting}
-            className="h-11 rounded-2xl bg-emerald-500 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
+            variant="outline"
+            className="h-10 rounded-2xl border-amber-400/25 bg-amber-400/10 text-sm font-bold text-amber-100 hover:bg-amber-400/16 hover:text-white"
           >
-            {submitting ? "Yedek talep oluşturuluyor..." : "Test / Yedek Talep Oluştur"}
+            {submitting ? "Yedek talep oluşturuluyor..." : "Test Talebi Oluştur"}
           </Button>
 
           {createdJob ? (
@@ -1050,7 +1174,7 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
               Otomasyonu Başlat
             </Button>
             <div className="grid gap-2">
-              {["Doganium başlat", "DevTools bağlantısı", "Login/MFA kontrolü", "Trafik sorgusu", "Teklif/PDF sonucu", "WhatsApp mesajı"].map((step, index) => (
+              {["Talep alındı", "Bilgiler doğrulandı", "Doganium başlat", "Login/MFA kontrolü", "Trafik sorgusu", "Teklif/PDF sonucu", "WhatsApp mesajı"].map((step, index) => (
                 <div key={step} className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/40 px-3 py-2 text-sm text-slate-200">
                   <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-xs font-black text-emerald-200">{index + 1}</span>
                   <span className="font-semibold">{step}</span>
