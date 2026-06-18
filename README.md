@@ -69,6 +69,44 @@ Electron masaustu gelistirme:
 npm.cmd run desktop:dev
 ```
 
+MVP masaustu akisini iki terminalle calistirmak icin:
+
+```powershell
+npm.cmd run dev
+```
+
+```powershell
+npm.cmd run dev:electron
+```
+
+MVP karari: Doganium full automation, MFA bypass ve tam otomatik PDF alma Phase 2 kapsamindadir. MVP; local queue + mock/manuel quote result flow ile calisir.
+
+## MVP Lokal Run Flow
+
+1. Dev server'i baslatin:
+
+```powershell
+npm.cmd run dev
+```
+
+2. Electron penceresini acin:
+
+```powershell
+npm.cmd run dev:electron
+```
+
+3. Dashboard'da `MVP Test İşi Oluştur` aksiyonunu kullanin.
+
+4. Mock worker'i calistirin:
+
+```powershell
+python .\worker\mock_doganium_worker.py
+```
+
+5. Dashboard'u yenileyin, olusan isi secin ve teklif sonucunu goruntuleyin.
+
+Bu akis Doganium PDF otomasyonunun tamamlandigini iddia etmez; MFA/manual verification beklenen dis adimdir.
+
 ## JSON Store Test Isi Olusturma
 
 Once dev server acik olmalidir:

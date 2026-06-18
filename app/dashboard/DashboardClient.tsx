@@ -53,6 +53,13 @@ export type DashboardJob = TrafficJobRow & {
   result: DashboardJobResult | null;
 };
 
+type CreatedTestJobState = {
+  id: string;
+  plate: string;
+  status: TrafficJobRow["status"];
+  nextStep: string;
+};
+
 type Summary = {
   total: number;
   pending: number;
@@ -81,6 +88,9 @@ const easeOut = [0.16, 1, 0.3, 1] as const;
 
 export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [createdTestJob, setCreatedTestJob] = useState<CreatedTestJobState | null>(null);
+  const [createJobError, setCreateJobError] = useState<string | null>(null);
+  const [creatingTestJob, setCreatingTestJob] = useState(false);
   const selectedJob = selectedJobId ? jobs.find((job) => job.id === selectedJobId) ?? null : null;
   const summary = useMemo(() => buildSummary(jobs), [jobs]);
   const openJobDetail = (jobId: string) => {
@@ -88,6 +98,42 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
   };
   const closeJobDetail = () => {
     setSelectedJobId(null);
+  };
+  const createMvpTestJob = async () => {
+    setCreatingTestJob(true);
+    setCreateJobError(null);
+
+    try {
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerPhone: "905367074329",
+          customerName: "MVP Test Musterisi",
+          tckn: "27136769618",
+          plate: "34MYZ039",
+          documentSerial: "HV689268",
+          birthDate: "25.02.2000",
+          rawMessage: "TC 27136769618 Plaka 34MYZ039 Belge HV689268 Dogum 25.02.2000",
+        }),
+      });
+      const result = await response.json() as { ok?: boolean; data?: DashboardJob; error?: string };
+
+      if (!response.ok || !result.ok || !result.data) {
+        throw new Error(result.error || "Test işi oluşturulamadı.");
+      }
+
+      setCreatedTestJob({
+        id: result.data.id,
+        plate: result.data.plate ?? "34MYZ039",
+        status: result.data.status,
+        nextStep: "Mock Worker Çalıştır komutunu çalıştırın, sonra dashboard'u yenileyip sonucu görüntüleyin.",
+      });
+    } catch (error) {
+      setCreateJobError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCreatingTestJob(false);
+    }
   };
 
   return (
@@ -163,7 +209,12 @@ export default function DashboardClient({ jobs }: { jobs: DashboardJob[] }) {
 
       <OperationFlow summary={summary} />
 
-      <MvpReadinessPanel />
+      <MvpReadinessPanel
+        createdTestJob={createdTestJob}
+        createJobError={createJobError}
+        creatingTestJob={creatingTestJob}
+        onCreateTestJob={createMvpTestJob}
+      />
 
       <section className="grid min-w-0 grid-cols-12 gap-3">
         <SummaryCard label="Toplam İş" value={summary.total} tone="navy" helper="Son 50 kayıt" icon={FileText} index={0} />
@@ -274,7 +325,17 @@ function OperationFlow({ summary }: { summary: Summary }) {
   );
 }
 
-function MvpReadinessPanel() {
+function MvpReadinessPanel({
+  createdTestJob,
+  createJobError,
+  creatingTestJob,
+  onCreateTestJob,
+}: {
+  createdTestJob: CreatedTestJobState | null;
+  createJobError: string | null;
+  creatingTestJob: boolean;
+  onCreateTestJob: () => void;
+}) {
   const statusItems = [
     { label: "Local queue", value: "Aktif", detail: "Yerel iş kuyruğu MVP akışını taşır.", tone: "green" },
     { label: "Mock/manuel quote flow", value: "Aktif", detail: "Mock/manuel sonuç akışı hazır.", tone: "green" },
@@ -293,7 +354,7 @@ function MvpReadinessPanel() {
 
   return (
     <section className="grid min-w-0 grid-cols-12 gap-4">
-      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-8">
+      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-7">
         <CardHeader className="p-4 pb-3">
           <CardTitle className="ares-title text-base font-black">MVP Durumu</CardTitle>
           <CardDescription className="ares-muted text-sm">
@@ -313,18 +374,63 @@ function MvpReadinessPanel() {
         </CardContent>
       </Card>
 
-      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-4">
+      <Card className="ares-panel col-span-12 min-w-0 overflow-hidden rounded-3xl shadow-2xl shadow-black/18 xl:col-span-5">
         <CardHeader className="p-4 pb-3">
-          <CardTitle className="ares-title text-base font-black">MVP Checklist</CardTitle>
-          <CardDescription className="ares-muted text-sm">Final stabilizasyon için izlenen küçük kapsam.</CardDescription>
+          <CardTitle className="ares-title text-base font-black">MVP Lokal Test Akışı</CardTitle>
+          <CardDescription className="ares-muted text-sm">Test işi oluşturun, mock worker komutunu çalıştırın, sonucu dashboard'da görüntüleyin.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-2 p-4 pt-0">
-          {checklist.map((item) => (
-            <div key={item} className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2">
-              <CheckCircle2 className="size-4 shrink-0 text-emerald-300" />
-              <span className="truncate text-sm font-semibold text-slate-100">{item}</span>
+        <CardContent className="space-y-3 p-4 pt-0">
+          <Button
+            type="button"
+            onClick={onCreateTestJob}
+            disabled={creatingTestJob}
+            className="h-11 w-full rounded-2xl bg-emerald-500 text-sm font-black text-emerald-950 shadow-lg shadow-emerald-950/20 hover:bg-emerald-400"
+          >
+            {creatingTestJob ? "Test işi oluşturuluyor..." : "MVP Test İşi Oluştur"}
+          </Button>
+
+          {createdTestJob ? (
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold text-emerald-100">Test işi oluşturuldu</p>
+                <SoftBadge tone="green">{getStatusLabel(createdTestJob.status)}</SoftBadge>
+              </div>
+              <dl className="mt-3 grid gap-2 text-xs text-slate-200">
+                <div className="flex min-w-0 justify-between gap-3">
+                  <dt className="text-slate-400">Job ID</dt>
+                  <dd className="truncate font-mono">{createdTestJob.id}</dd>
+                </div>
+                <div className="flex min-w-0 justify-between gap-3">
+                  <dt className="text-slate-400">Plaka</dt>
+                  <dd className="font-bold">{createdTestJob.plate}</dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-xs leading-5 text-emerald-50/80">{createdTestJob.nextStep}</p>
             </div>
-          ))}
+          ) : null}
+
+          {createJobError ? (
+            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 p-3 text-sm font-semibold text-rose-100">
+              {createJobError}
+            </div>
+          ) : null}
+
+          <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-3">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Mock Worker Çalıştır</p>
+            <code className="mt-2 block overflow-x-auto whitespace-nowrap rounded-xl bg-black/30 px-3 py-2 text-xs text-emerald-100">
+              python .\worker\mock_doganium_worker.py
+            </code>
+          </div>
+
+          <div className="grid gap-2">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">MVP Checklist</p>
+            {checklist.map((item) => (
+              <div key={item} className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2">
+                <CheckCircle2 className="size-4 shrink-0 text-emerald-300" />
+                <span className="truncate text-sm font-semibold text-slate-100">{item}</span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </section>
@@ -579,6 +685,10 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
   }
 
   const cheapestPremium = getCheapestPremium(job.result);
+  const highestPremium = getHighestPremium(job.result);
+  const quoteCurrency = job.result?.quotes[0]?.currency ?? "TRY";
+  const cheapestOffer = getCheapestOffer(job.result);
+  const companyCount = job.result?.quotes.length ?? 0;
   const shortId = job.id.length > 12 ? `${job.id.slice(0, 8)}...${job.id.slice(-4)}` : job.id;
 
   return (
@@ -664,6 +774,18 @@ function JobDetailDrawerContent({ job, onClose }: { job: DashboardJob; onClose: 
               </div>
             ) : (
               <div className="mt-3 space-y-3">
+                <div className="grid gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm md:grid-cols-2">
+                  <DetailPill label="En uygun teklif" value={cheapestOffer ? `${cheapestOffer.company} - ${formatCurrency(cheapestOffer.premium, cheapestOffer.currency)}` : "-"} />
+                  <DetailPill label="En yüksek teklif" value={highestPremium === null ? "-" : formatCurrency(highestPremium, quoteCurrency)} />
+                  <DetailPill label="Şirket sayısı" value={String(companyCount)} />
+                  <div className="ares-surface min-w-0 rounded-2xl px-3.5 py-3">
+                    <p className="text-xs font-medium text-slate-400">Durum</p>
+                    <div className="mt-1">
+                      <StatusBadge status={job.status} />
+                    </div>
+                  </div>
+                </div>
+
                 {job.result.quotes.map((quote, index) => {
                   const isCheapest = quote.premium === cheapestPremium;
 
@@ -795,6 +917,17 @@ function getCheapestPremium(result: DashboardJobResult | null) {
   if (!result?.quotes.length) return null;
   if (typeof result.cheapestPremium === "number") return result.cheapestPremium;
   return Math.min(...result.quotes.map((quote) => quote.premium));
+}
+
+function getHighestPremium(result: DashboardJobResult | null) {
+  if (!result?.quotes.length) return null;
+  if (typeof result.highestPremium === "number") return result.highestPremium;
+  return Math.max(...result.quotes.map((quote) => quote.premium));
+}
+
+function getCheapestOffer(result: DashboardJobResult | null) {
+  if (!result?.quotes.length) return null;
+  return result.quotes.reduce((best, quote) => (quote.premium < best.premium ? quote : best), result.quotes[0]);
 }
 
 function formatDate(value: string) {
